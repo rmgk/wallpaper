@@ -10,6 +10,7 @@ use util;
 use Tie::File;
 #use Getopt::Long;
 #use File::Basename;
+#use Data::Dumper;
 
 
 
@@ -28,12 +29,20 @@ $ua->env_proxy;
 #$ua->show_progress(1);
 
 
-my $request = POST 'http://tineye.com/search' ,
+my $request = POST 'http://www.tineye.com/search' ,
 		Content_Type => 'form-data',
 		Content      => [ 
 							image   => [$file],
 						];
 
+#my $tmp =  Dumper($request);
+#$tmp =~ s/\a//g;
+#say $tmp;
+						
 my $response = $ua->request($request);
+
+#my $tmp2 =  Dumper($response);
+#$tmp2 =~ s/\a//g;
+#say $tmp2;
 
 system("start " . $response->header("Location"));
