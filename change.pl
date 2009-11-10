@@ -126,5 +126,11 @@ saveAs("wallpaper.$filetype",$filetype,$file =~ /\.png$/i);
 say "calling api to update wallpaper";
 setWallpaper(abs_path("wallpaper.$filetype")); # 
 
+if ($ini->{thumbnail}) {
+	say "creating thumbnail";
+	openImage($file);
+	resizeKeep(split('x',$ini->{thumbnail}));
+	extendAlphaSaveAsNoHack(split('x',$ini->{thumbnail}),"thumb.png","png");
+}
 
 say "done";
