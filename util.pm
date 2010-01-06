@@ -58,7 +58,7 @@ sub piclist {
 	while(my $x = readdir($PIC)) {
 		next if $x =~ m/^\.{1,2}$/; 
 		if (-d $basedir.$adddir.$x) {
-			push(@list,piclist($basedir.$adddir.$x.'\\'));
+			push(@list,piclist($basedir,$adddir.$x.'\\'));
 		}
 		else {
 			if ($x =~ m/\.(jpe?g|gif|png|bmp)$/) {
