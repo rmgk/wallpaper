@@ -47,24 +47,22 @@ sub readINI {
 }
 
 sub piclist {
-	my $dir = shift;
-	
+	my $basedir = shift;
+	my $adddir = shift // "";
 	my @list;
-	
-	say $dir;
-	
+	say $basedir.$adddir;
 	my $PIC;
 	
-	opendir($PIC,$dir) or die $!;
+	opendir($PIC,$basedir.$adddir) or die $!;
 	
 	while(my $x = readdir($PIC)) {
 		next if $x =~ m/^\.{1,2}$/; 
-		if (-d $dir.$x) {
-			push(@list,piclist($dir.$x.'\\'));
+		if (-d $basedir.$adddir.$x) {
+			push(@list,piclist($basedir.$adddir.$x.'\\'));
 		}
 		else {
 			if ($x =~ m/\.(jpe?g|gif|png|bmp)$/) {
-				push(@list,$dir.$x);
+				push(@list,$adddir.$x);
 			}
 		}
 	}

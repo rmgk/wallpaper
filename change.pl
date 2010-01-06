@@ -10,14 +10,14 @@ use Cwd qw(abs_path);
 my($image, $x);
 
 my $ini = readINI("config.ini")->{default};
+my $dir = $ini->{directory};
 my @pictures;
 
 die "no in_list specified" unless $ini->{in_list};
 
 unless (-e $ini->{in_list}) {
 	use List::Util 'shuffle';
-	my $dn = $ini->{directory};
-	@pictures = piclist($dn);
+	@pictures = piclist($dir);
 	my %in;
 	$in{$_} = 1 for @pictures;
 	@pictures = shuffle keys %in;
@@ -40,7 +40,7 @@ if ((defined $change) and $ini->{out_list}) {
 		use File::Copy;
 		my $file = pop (@out_list);
 		say "adding $file to lame list";
-		move($file,'./lame/');
+		move($dir.$file,'./lame/$file');
 		if ($ini->{lame_list}) {
 			open(LST,">>",$ini->{lame_list});
 			print LST $file . "\n";
@@ -83,10 +83,10 @@ if ($ini->{out_list}) {
 
 say "selecting file: \n$file";
 
-die "does not exist!" unless -e $file;
+die "does not exist!" unless -e $dir.$file;
 
 say "opening image";
-openImage($file);
+openImage($dir.$file);
 
 my ($iw,$ih) = getDimensions();
 my $iz = $iw/$ih;
@@ -128,7 +128,7 @@ setWallpaper(abs_path("wallpaper.$filetype")); #
 
 if ($ini->{thumbnail}) {
 	say "creating thumbnail";
-	openImage($file);
+	openImage($dir.$file);
 	resizeKeep(split('x',$ini->{thumbnail}));
 	extendAlphaSaveAsNoHack(split('x',$ini->{thumbnail}),"thumb.png","png");
 }
