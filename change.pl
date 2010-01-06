@@ -72,8 +72,15 @@ if ((defined $change) and $ini->{out_list}) {
 }
 
 my $file = shift @in_list;
-die "no file found" unless $file;
+my $length = scalar(@in_list);
 untie @in_list or die "$!";
+
+if ($length <= 1) {
+	unlink $ini->{in_list};
+}
+
+die "no file found" unless $file;
+
 
 if ($ini->{out_list}) {
 	open(LST,">>",$ini->{out_list});
