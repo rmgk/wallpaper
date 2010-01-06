@@ -5,3 +5,9 @@ history.txt
 lame.txt
 favorites.txt
 wallpaper.bmp
+wp
+*.jpg
+*.bmp
+*.png
+*.jpeg
+*.gif
