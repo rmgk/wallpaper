@@ -32,7 +32,7 @@ $ua->env_proxy;
 my $request = POST 'http://www.tineye.com/search' ,
 		Content_Type => 'form-data',
 		Content      => [ 
-							image   => [$file],
+							image   => [$ini->{directory}.$file],
 						];
 
 #my $tmp =  Dumper($request);
