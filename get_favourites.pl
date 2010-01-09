@@ -4,10 +4,15 @@ use strict;
 
 use File::Copy;
 
+use lib ".";
+use util;
+
+my $ini = readINI("config.ini")->{default};
+
 mkdir "favorites";
 
 open(FAV, "favorites.txt");
 while(chomp(my $file = <FAV>)) {
-	copy($file,"./favorites/");
+	copy($ini->{directory}.$file,"./favorites/");
 }
 
