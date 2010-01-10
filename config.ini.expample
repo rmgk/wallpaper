@@ -1,0 +1,35 @@
+;;copy this file to config.ini and edit it to your needs
+
+;; the output resolution for all converted files 
+resulution=1280x1024
+
+;; this may be a absolute or a relative path
+directory=C:\Wallpapers\
+
+;; the file all the wallpapers are listed, will be created on the first run
+in_list=pool.txt
+
+;; the history of the wallpapers
+out_list=history.txt
+
+;; the list where all the favorites are listed 
+fav_list=favorites.txt
+
+;; the list of lame files
+lame_list=lame.txt
+
+;; the the aspect ratio of the image and the one of your resolution differs this much
+;; the ratio of the image is kept and it will get some colored borders
+max_deformation=0.2
+
+;; moves the picture this amount of pixels upwards if gets a border
+taskbar_offset=15
+
+;; the offset of the annotation 
+anno_offset=30
+
+;; the filetype the output image is saved in (you may use jpg on windows vista but bmp is considered more secure
+filetype=bmp
+
+;; set this to a resolution (ex. 200x100) and a thumbnail of the image will be generated
+thumbnail=0

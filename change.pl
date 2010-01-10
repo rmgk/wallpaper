@@ -9,6 +9,7 @@ use Cwd qw(abs_path);
 
 my($image, $x);
 
+die "no config specified" unless -e "config.ini";
 my $ini = readINI("config.ini")->{default};
 my $dir = $ini->{directory};
 my @pictures;
