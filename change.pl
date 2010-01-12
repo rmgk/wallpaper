@@ -93,44 +93,49 @@ say "selecting file: \n$file";
 
 die "does not exist!" unless -e $dir.$file;
 
-say "opening image";
-openImage($dir.$file);
+create_res($ini->{resulution},"wallpaper");
+create_res($ini->{second_resolution},"wallpaper2") if $ini->{second_resolution};
 
-my ($iw,$ih) = getDimensions();
-my $iz = $iw/$ih;
+sub create_res {
+	say "opening image";
+	openImage($dir.$file);
 
-say "image dimensions: $iw x $ih ($iz)";
+	my ($iw,$ih) = getDimensions();
+	my $iz = $iw/$ih;
 
-my ($rx,$ry) = split(/\D+/,$ini->{resulution});
-my $rz = $rx/$ry;
+	say "image dimensions: $iw x $ih ($iz)";
 
-say "screen resolution: $rx x $ry ($rz)";
+	my ($rx,$ry) = split(/\D+/,$_[0]);
+	my $rz = $rx/$ry;
 
-my $abw = 1 + $ini->{max_deformation};
+	say "screen resolution: $rx x $ry ($rz)";
+
+	my $abw = 1 + $ini->{max_deformation};
 
 
-if (($iz < $rz * $abw) && ($iz > $rz / $abw)) {
-	say sprintf ("deformation in range %.2f < %.2f < %.2f - resizing to full screen" , $rz / $abw , $iz , $rz*$abw);
-	resize($rx,$ry);
+	if (($iz < $rz * $abw) && ($iz > $rz / $abw)) {
+		say sprintf ("deformation in range %.2f < %.2f < %.2f - resizing to full screen" , $rz / $abw , $iz , $rz*$abw);
+		resize($rx,$ry);
+	}
+	else {
+		say sprintf ("deformation out of range %.2f < %.2f < %.2f - resizing while keeping ratio",$rz /$abw , $iz , $rz*$abw);
+		resizeKeep($rx,$ry);
+		say "extending image with background color";
+		extend($rx,$ry,$ini->{taskbar_offset});
+	}
+
+	#liquidResize($rx,$ry);
+
+	say "annotating";
+	my ($filename) = $file;
+	$filename =~ s#.+[\\/]##;
+	annotate($filename,$ini->{anno_offset});
+
+	my $filetype = $ini->{filetype} // "bmp";
+	say "saving image as $filetype";
+	saveAs($_[1].".$filetype",$filetype,$file =~ /\.png$/i);
 }
-else {
-	say sprintf ("deformation out of range %.2f < %.2f < %.2f - resizing while keeping ratio",$rz /$abw , $iz , $rz*$abw);
-	resizeKeep($rx,$ry);
-	say "extending image with background color";
-	extend($rx,$ry,$ini->{taskbar_offset});
-}
-
-#liquidResize($rx,$ry);
-
-say "annotating";
-my ($filename) = $file;
-$filename =~ s#.+[\\/]##;
-annotate($filename,$ini->{anno_offset});
-
 my $filetype = $ini->{filetype} // "bmp";
-say "saving image as $filetype";
-saveAs("wallpaper.$filetype",$filetype,$file =~ /\.png$/i);
-
 say "calling api to update wallpaper";
 setWallpaper(abs_path("wallpaper.$filetype")); # 
 
