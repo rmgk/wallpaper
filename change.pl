@@ -125,6 +125,10 @@ sub create_res {
 	}
 
 	#liquidResize($rx,$ry);
+	
+	if ($ini->{extend_black}) {
+		extendBlackNorth(split(/\D+/,$ini->{extend_black}));
+	}
 
 	say "annotating";
 	my ($filename) = $file;

@@ -34,5 +34,8 @@ filetype=bmp
 ;; set this to a resolution (ex. 200x100) and a thumbnail of the image will be generated
 thumbnail=0
 
-;; create a second image (for a second monitor)
-second_resolution=1280x1024
+;; create a second image (for a second monitor) 
+second_resolution=0
+
+;;adds a black border at the bottom (use desired target resolution e.g. 1280x1024 and decrease normal resulution)
+extend_black=0

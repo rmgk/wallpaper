@@ -258,6 +258,11 @@ sub extendAlphaSaveAsNoHack {
 	$iM->Write(filename=>"$filetype:$filename");
 }
 
+sub extendBlackNorth {
+	my ($x,$y) = @_;
+	$iM->Extent(geometry=>$x."x".$y,background=>"rgba(0,0,0,255)",gravity=>"North");
+}
+
 
 
 1;
