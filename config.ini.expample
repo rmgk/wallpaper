@@ -40,6 +40,7 @@ second_resolution=0
 ;; adds a black border at the bottom (use desired target resolution e.g. 1280x1024 and decrease normal resulution)
 extend_black=0
 
-;; set this to path for whole (relative) path file for file name only or none for no annotation
+;; set this to 'path' for whole (relative) path, 'file' for file name only, 'none' for no annotation
+;; or 'path_multiline' to have the path splitted in multiple lines
 ;; defaults to file
 annotate=file

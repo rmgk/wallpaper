@@ -133,8 +133,19 @@ sub create_res {
 	if ($ini->{annotate} ne "none") { 
 		say "annotating";
 		my ($filename) = $file;
-		$filename =~ s#.+[\\/]## unless $ini->{annotate} eq "path";
-		annotate($filename,$ini->{anno_offset});
+		$filename =~ s#\\#/#;
+		if ($ini->{annotate} eq "path_multiline") {
+			my @filename = reverse split '/', $filename;
+			my $off = $ini->{anno_offset};
+			for (@filename) {
+				annotate($_,$off);
+				$off += 16
+			}
+		}
+		else {
+			$filename =~ s#.+[\\/]## unless $ini->{annotate} eq "path";
+			annotate($filename,$ini->{anno_offset});
+		}
 	}
 
 	my $filetype = $ini->{filetype} // "bmp";
