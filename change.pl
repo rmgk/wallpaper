@@ -133,7 +133,7 @@ sub create_res {
 	if ($ini->{annotate} ne "none") { 
 		say "annotating";
 		my ($filename) = $file;
-		$filename =~ s#\\#/#;
+		$filename =~ s#\\#/#g;
 		if ($ini->{annotate} eq "path_multiline") {
 			my @filename = reverse split '/', $filename;
 			my $off = $ini->{anno_offset};
