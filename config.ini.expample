@@ -37,5 +37,9 @@ thumbnail=0
 ;; create a second image (for a second monitor) 
 second_resolution=0
 
-;;adds a black border at the bottom (use desired target resolution e.g. 1280x1024 and decrease normal resulution)
+;; adds a black border at the bottom (use desired target resolution e.g. 1280x1024 and decrease normal resulution)
 extend_black=0
+
+;; set this to path for whole (relative) path file for file name only or none for no annotation
+;; defaults to file
+annotate=file

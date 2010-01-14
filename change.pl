@@ -129,11 +129,13 @@ sub create_res {
 	if ($ini->{extend_black}) {
 		extendBlackNorth(split(/\D+/,$ini->{extend_black}));
 	}
-
-	say "annotating";
-	my ($filename) = $file;
-	$filename =~ s#.+[\\/]##;
-	annotate($filename,$ini->{anno_offset});
+	
+	if ($ini->{annotate} ne "none") { 
+		say "annotating";
+		my ($filename) = $file;
+		$filename =~ s#.+[\\/]## unless $ini->{annotate} eq "path";
+		annotate($filename,$ini->{anno_offset});
+	}
 
 	my $filetype = $ini->{filetype} // "bmp";
 	say "saving image as $filetype";
