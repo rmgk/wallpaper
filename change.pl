@@ -41,7 +41,10 @@ if ((defined $change) and $ini->{out_list}) {
 		use File::Copy;
 		my $file = pop (@out_list);
 		say "adding $file to lame list";
-		move($dir.$file,'./lame/$file');
+		mkdir "./lame/";
+		my $file_part = $file;
+		$file_part =~ s#^.*\\##;
+		move($dir.$file,"./lame/$file_part");
 		if ($ini->{lame_list}) {
 			open(LST,">>",$ini->{lame_list});
 			print LST $file . "\n";
