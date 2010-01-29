@@ -15,7 +15,7 @@ use Data::Dumper;
 use Digest::SHA;
 use Time::HiRes;
 
-our $VERSION = 1.0;
+our $VERSION = 1.1;
 our $SHA = Digest::SHA->new();
 
 
@@ -47,12 +47,7 @@ sub body {
 		return undef if $s->{no_body};
 		my $res = dlutil::get($s->url,$s->referrer);
 		if ($res->is_error()) {
-			$s->{body} = $res->content();
-			my $status_line = $res->status_line();
-			$s->status("Body Request error: " . $status_line,"ERR",$s->url());
-			$s->{body} = undef;
-			$s->{no_body} = 1;
-			return undef;
+				die "could not get body: " . $res->status_line();;
 		}
 		$s->{body} = $res->content();
 	}
@@ -130,7 +125,7 @@ sub download {
 
 sub next_page {
 	my $s = shift;
-	$s->body =~ m~<span class='title'><a href='([^']+)'><< Newer Wallpapers</a>~;
+	$s->body =~ m~<span class='title'><a href='(newest_wallpapers.php\?o=\d+&d=newer)'><< Newer Wallpapers</a>~;
 	return "http://wall.alphacoders.com/" . $1;
 }
 

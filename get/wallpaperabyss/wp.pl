@@ -9,7 +9,7 @@ use DBI;
 use WallpaperAbyss;
 
 
-our $VERSION = 1.0;
+our $VERSION = 1.1;
 
 
 our $TERM = 0;
