@@ -24,12 +24,14 @@ untie(@out_list);
 
 my $ua = new LWP::UserAgent;  
 $ua->agent("wpc.pl");
+#$ua->show_progress( 1 );
 #$ua->timeout(15);
 $ua->env_proxy;
 #$ua->show_progress(1);
 $ua->cookie_jar( {} );
 
 
+say "requesting user id";
 my $request = HTTP::Request->new(GET => "http://www.tinypic.com/");
 my $response = $ua->request($request);
 
@@ -44,6 +46,7 @@ if ($content =~ m#name="upk" value="([^"]+)"#is) {
 	$upk = $1;
 }
 
+say "uploading file";
 $request = POST 'http://s6.tinypic.com/upload.php' ,
 		Content_Type => 'form-data',
 		Content      => [ 
@@ -66,6 +69,7 @@ $response = $ua->request($request);
 # $tmp2 =~ s/\a//g;
 # say $tmp2;
 
+say "getting direct link";
 $content = $response->content();
 $content =~ m#<a href="([^"]+)" target="_blank">Click here</a> to view your image#si;
 
