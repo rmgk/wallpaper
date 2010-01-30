@@ -96,11 +96,10 @@ sub download {
 	print "GET: " . $url . " => " . $dir.$file;
 	
 	my $time = Time::HiRes::time;
-	my $img_res = dlutil::get($url);
+	my $img_res = dlutil::get($url,$s->url);
 	$time = Time::HiRes::time - $time;
 	if ($img_res->is_error) {
-		say " error"; #were waiting for speed and newline
-		$s->{error_download} = $img_res->status_line();
+		say " error ". $img_res->status_line(); #were waiting for speed and newline
 		if ($img_res->code() == 404) {
 			return -2;
 		}

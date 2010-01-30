@@ -38,7 +38,7 @@ sub _init_ua {
 	#require HTTP::Status;
 	#require HTTP::Date;
 	$ua = new LWP::UserAgent;  # we create a global UserAgent object
-	$ua->agent("comcol/$::VERSION");
+	$ua->agent("wp/$::VERSION");
 	$ua->timeout(15);
 	$ua->env_proxy;
 	$ua->conn_cache(LWP::ConnCache->new());
