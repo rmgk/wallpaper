@@ -37,12 +37,13 @@ close FILE;
 
 while (!$TERM and $url) {
 	my $wpa = WallpaperAbyss->new({url=>$url, dbh=>$dbh});
-	$wpa->get_page();
+	redo unless $wpa->get_page();
 	last if $TERM;
 	$url = $wpa->next_page();
 	open (FILE, ">next_url.txt");
 	print FILE $url;
 	close FILE;
 }
+
 
 $dbh->disconnect if $dbh;

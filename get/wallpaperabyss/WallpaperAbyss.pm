@@ -61,11 +61,12 @@ sub get_page {
 	while (!$main::TERM and $body =~ /$regex/gims ) {
 		my ($id,$cat,$subcat,$votedown,$voteup,$resx,$resy) = ($+{id},$+{category},$+{subcategory},$+{votedown},$+{voteup},$+{width},$+{height});
 		my ($sha1,$size) = $self->download($id,$cat,$subcat);
-		die unless $sha1;
+		return 0 unless $sha1;
 		next unless $size;
 		$self->dbh->do('INSERT INTO wallpapers (id,category,subcategory,votedown,voteup,resx,resy,sha1,size) VALUES (?,?,?,?,?,?,?,?,?)',{}
 						,$id,$cat,$subcat,$votedown,$voteup,$resx,$resy,$sha1,$size);
 	}
+	return 1;
 }
 
 sub download {
