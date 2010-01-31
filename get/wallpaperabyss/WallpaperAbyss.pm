@@ -47,7 +47,8 @@ sub body {
 		return undef if $s->{no_body};
 		my $res = dlutil::get($s->url,$s->referrer);
 		if ($res->is_error()) {
-				die "could not get body: " . $res->status_line();;
+				say "could not get body: " . $res->status_line();
+				return 0;
 		}
 		$s->{body} = $res->content();
 	}
@@ -57,6 +58,7 @@ sub body {
 sub get_page {
 	my ($self) = shift;
 	my $body = $self->body();
+	return 0 unless $body;
 	my $regex = q~<span class='info'><strong>(?<width>\d+)x(?<height>\d+)</strong>.*?<span id='(?<id>\d+)'><strong>\s*<a href='#' onclick="showChange\(1, \d+\); return false;">\s*(?<voteup>\d+)<img src='rate_up_small.png' border=0></a>\s*<a href='#' onclick="showChange\(-1, \d+\); return false;">\s*(?<votedown>\d+)<img src='rate_down_small.png' border=0></a></strong></span>\s*<span class='info'>\s*<br>Category: <strong><a href='[^']*?' title='[^']*?'>(?<category>[\w\s]+)</a></strong> - <strong><a href='[^']*?' title='[^']*?'>(?<subcategory>[\s\w]+)</a></strong>~;
 	while (!$main::TERM and $body =~ /$regex/gims ) {
 		my ($id,$cat,$subcat,$votedown,$voteup,$resx,$resy) = ($+{id},$+{category},$+{subcategory},$+{votedown},$+{voteup},$+{width},$+{height});
