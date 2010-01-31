@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use DBI;
 use Digest::SHA;
-use File::Copy;
+use util;
 
 my $SHA = Digest::SHA->new();
 
@@ -21,9 +21,11 @@ my $update = $dbh->prepare("UPDATE doubles SET path = ? WHERE sha1 = ?");
 my $paths = $dbh->selectall_hashref("SELECT path, sha1 FROM doubles","path");
 my $shas = $dbh->selectall_hashref("SELECT sha1, path FROM doubles","sha1");
 
-piclist($ARGV[0] // 'wp\\');
+my $ini = readINI("config.ini")->{default};
 
-sub piclist {
+check_dir($ini->{directory});
+
+sub check_dir {
 	my $basedir = shift;
 	my $adddir = shift // "";
 	my @list;
@@ -35,7 +37,7 @@ sub piclist {
 	while(my $x = readdir($PIC)) {
 		next if $x =~ m/^\.{1,2}$/; 
 		if (-d $basedir.$adddir.$x) {
-			piclist($basedir,$adddir.$x.'\\');
+			check_dir($basedir,$adddir.$x.'\\');
 		}
 		else {
 			if ($x =~ m/\.(jpe?g|gif|png|bmp)$/i) {
@@ -45,7 +47,7 @@ sub piclist {
 	}
 	
 	closedir($PIC);
-	#$dbh->commit();
+	$dbh->commit();
 }
 
 sub check_double {
