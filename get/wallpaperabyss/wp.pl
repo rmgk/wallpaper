@@ -40,6 +40,7 @@ while (!$TERM and $url) {
 	redo unless $wpa->get_page();
 	last if $TERM;
 	$url = $wpa->next_page();
+	die "thats all folks" if $url eq 'http://wall.alphacoders.com/newest_wallpapers.php?o=0&d=newer';
 	open (FILE, ">next_url.txt");
 	print FILE $url;
 	close FILE;
