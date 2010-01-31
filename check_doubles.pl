@@ -21,7 +21,6 @@ my $update = $dbh->prepare("UPDATE doubles SET path = ? WHERE sha1 = ?");
 my $paths = $dbh->selectall_hashref("SELECT path, sha1 FROM doubles","path");
 my $shas = $dbh->selectall_hashref("SELECT sha1, path FROM doubles","sha1");
 
-
 piclist($ARGV[0] // 'wp\\');
 
 sub piclist {
@@ -56,33 +55,33 @@ sub check_double {
 	my $path = $basedir . $addir . $file;
 	#$stq->execute($path);
 	#return if $stq->fetchrow_arrayref();
-	return if $paths->{$path};
+	return if $paths->{$path}->{sha1};
 	if ($file) {
 		if (-e $path) { 
 			my $sha = $SHA->addfile($path,"b")->hexdigest;
 			if ($sha) {
-				if (my $opath = $shas->{$sha}) {
+				if (my $opath = $shas->{$sha}->{path}) {
 					#$select->execute($sha);
 					#my ($opath,$ofile) = $select->fetchrow_array();
 					#return if ($opath eq $path);
 					say $opath,"\n", $path , "\n";
 					my $ofile = $opath;
 					$ofile =~ s~^.*\\~~;
-					if (length($file) < length($ofile)) {
+					if (length($file) <= length($ofile)) {
 						unlink $path;
 					}
 					else {
 						$update->execute($path,$sha);
 						$paths->{$opath} = undef;
-						$shas->{$sha} = $path;
-						$paths->{$path} = $sha;
+						$shas->{$sha}->{path} = $path;
+						$paths->{$path}->{sha1} = $sha;
 						unlink($opath);
 					}
 				}
 				else {
 					$insert->execute($sha,$path);
-					$paths->{$path} = $sha;
-					$shas->{$sha} = $path;
+					$paths->{$path}->{sha1} = $sha;
+					$shas->{$sha}->{path} = $path;
 				}
 			}
 			else {
