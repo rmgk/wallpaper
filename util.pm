@@ -61,7 +61,7 @@ sub piclist {
 			push(@list,piclist($basedir,$adddir.$x.'\\'));
 		}
 		else {
-			if ($x =~ m/\.(jpe?g|gif|png|bmp)$/) {
+			if ($x =~ m/\.(jpe?g|gif|png|bmp)$/i) {
 				push(@list,$adddir.$x);
 			}
 		}
