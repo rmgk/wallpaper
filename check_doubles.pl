@@ -69,7 +69,8 @@ sub check_double {
 					say $opath,"\n", $path , "\n";
 					my $ofile = $opath;
 					$ofile =~ s~^.*\\~~;
-					if (length($file) <= length($ofile)) {
+					
+					if ((length($file) <= length($ofile)) and (-e $opath)) {
 						unlink $path;
 					}
 					else {
