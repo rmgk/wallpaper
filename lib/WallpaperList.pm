@@ -41,8 +41,16 @@ sub init {
 }
 
 sub current {
-	my @path = $DBH->selectrow_array("SELECT path FROM wallpaper WHERE position = ?",undef,$CURRENT);
-	return $WP_PATH . $path[0] if $path[0];
+	my @data = $DBH->selectrow_array("SELECT path, sha1 FROM wallpaper WHERE position = ?",undef,$CURRENT);
+	if ($data[0] and !$data[1]) {
+		my $sha = $SHA->addfile($WP_PATH . $data[0],"b")->hexdigest;
+		$sha or die "could not get sha of $data[0]";
+		unless ($DBH->do("UPDATE OR FAIL wallpaper SET sha1 = ? WHERE position = ?",undef,$sha,$CURRENT)) {
+			die "failed to update sha1 value. maybe duplicate? (not implemented yet)";
+		}
+		$DBH->commit();
+	}
+	return $WP_PATH . $data[0] if $data[0];
 	return undef;
 }
 
@@ -52,9 +60,27 @@ sub current_position {
 
 sub remove_current {
 	$DBH->do("DELETE FROM wallpaper WHERE position = ?", undef, $CURRENT);
+	$DBH->commit();
 }
 sub fav_current {
 	$DBH->do("UPDATE wallpaper SET fav = 1 WHERE position = ?", undef, $CURRENT);
+	$DBH->commit();
+}
+
+sub vote_current {
+	my $vote = shift;
+	my ($cur) = $DBH->selectrow_array("SELECT vote FROM wallpaper WHERE position = ?",undef,$CURRENT);
+	$cur //= 0;
+	say "changing vote to " . ($cur + $vote);
+	unless ($DBH->do("UPDATE OR FAIL wallpaper SET vote = ? WHERE position = ?" , undef , ($cur + $vote),$CURRENT)) {
+		die "failed to update vote";
+	}
+	$DBH->commit();
+}
+
+sub nsfw_current {
+	$DBH->do("UPDATE wallpaper SET nsfw = 1 WHERE position = ?", undef, $CURRENT);
+	$DBH->commit();
 }
 
 sub forward {
@@ -88,7 +114,7 @@ sub determine_order {
 	use List::Util 'shuffle';
 	my @files =  shuffle @{$DBH->selectcol_arrayref("SELECT _rowid_ FROM wallpaper")};
 	my $sth = $DBH->prepare("UPDATE wallpaper SET position = ? WHERE _rowid_ = ?");
-	say scalar $sth->execute_array(undef, [shuffle (1..@files)], \@files);
+	$sth->execute_array(undef, [shuffle (1..@files)], \@files);
 	$DBH->commit();
 
 }
@@ -96,8 +122,8 @@ sub determine_order {
 sub add_folder {
 	my ($base,$path) = @_;
 	$path //= ""; # path is undef when we start at base
-	$STH_INSERT = $DBH->prepare("INSERT OR FAIL INTO wallpaper (sha1,path) VALUES (?,?)");
-	$STH_UPDATE = $DBH->prepare("UPDATE doubles SET path = ? WHERE sha1 = ?");
+	$STH_INSERT = $DBH->prepare("INSERT OR FAIL INTO wallpaper (path,sha1) VALUES (?,?)");
+	$STH_UPDATE = $DBH->prepare("UPDATE wallpaper SET path = ? WHERE sha1 = ?");
 	$PATHS = $DBH->selectall_hashref("SELECT path, sha1 FROM wallpaper","path");
 	$SHAS = $DBH->selectall_hashref("SELECT sha1, path FROM wallpaper","sha1");
 	_add_folder($base,$path);
@@ -166,7 +192,7 @@ sub add_file {
 
 sub insert_file {
 	my ($path,$sha) = @_;
-	$STH_INSERT->execute($sha,$path);
+	$STH_INSERT->execute($path,$sha);
 	$PATHS->{$path}->{sha1} = $sha;
 	$SHAS->{$sha}->{path} = $path if $sha;;
 }
@@ -179,5 +205,6 @@ sub update_file {
 	$PATHS->{$path}->{sha1} = $sha;
 	unlink($opath);
 }
+
 
 1;

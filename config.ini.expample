@@ -8,8 +8,8 @@ resulution=1280x1024
 wp_path=C:\Wallpapers\
 
 	;; checks all files for doubles this will create and store a hash for all fields 
-	;; you should activate it unless you have absolutely no time to create the hashes
-check_doubles=1
+	;; if you have a lot of files this will take very long
+check_doubles=0
 
 	;; where to collect favourites with getfav
 	;; this may be a absolute or a relative path (end with slash)
@@ -17,7 +17,7 @@ fav_path=.\favourites\
 
 	;; where to move "deleted" (lame) files
 	;; this may be a absolute or a relative path (end with slash)
-trash_path=.\lame\
+trash_path=.\trash\
 
 	;; where should the database be saved 
 	;; this may be a absolute or a relative path

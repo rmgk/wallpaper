@@ -20,11 +20,15 @@ WallpaperList::init($INI->{db_path},$INI->{wp_path},$INI->{current},$INI->{check
 
 given ($ARGV[0]) {
 	when('delete') { delete_wp() };
-	when('fav') { fav() };
+	when('fav') { WallpaperList::fav_current() };
 	when('getfav') { getfav() };
+	when('nsfw') {WallpaperList::nsfw_current() };
+	when('voteup') {vote(1) };
+	when('votedown') {vote(-1) };
 	when('tpu') { tpu() };
 	when('teu') { teu() };
-	default {change_wp($_)};
+	when(/-?\d+/) {change_wp($_)};
+	default {};
 }
 
 sub delete_wp {
@@ -39,17 +43,16 @@ sub delete_wp {
 	change_wp(1);
 }
 
-sub fav {
-	my $filename = WallpaperList::current();
-	$filename =~ s~.*[/\\]~~;
-	say "adding $filename to favorites";
-	WallpaperList::fav_current();
+sub vote {
+	my $vote = shift;
+	WallpaperList::vote_current($vote);
+	change_wp(1);
 }
 
 sub change_wp {
 	my $mv = shift;
 	my $path = WallpaperList::forward($mv);
-	die "no next" unless $path;
+	die "could not get next" unless $path;
 	say "selecting file: \n$path";
 	die "does not exist!" unless -e $path;
 	set_wallpaper($path);
