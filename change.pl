@@ -111,6 +111,8 @@ sub set_wallpaper {
 	if ($INI->{annotate} ne "none") { 
 		say "annotating";
 		my ($filename) = $file;
+		my $p = $INI->{wp_path};
+		$filename =~ s/^\Q$p\E//i;
 		$filename =~ s#\\#/#g;
 		if ($INI->{annotate} eq "path_multiline") {
 			my @filename = reverse split '/', $filename;
