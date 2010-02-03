@@ -19,6 +19,7 @@ say "loading wallpaper list";
 WallpaperList::init($INI->{db_path},$INI->{wp_path},$INI->{current},$INI->{check_doubles});
 
 given ($ARGV[0]) {
+	when(undef) {usage()};
 	when('delete') { delete_wp() };
 	when('fav') { WallpaperList::fav_current() };
 	when('getfav') { getfav() };
@@ -28,7 +29,19 @@ given ($ARGV[0]) {
 	when('tpu') { tpu() };
 	when('teu') { teu() };
 	when(/-?\d+/) {change_wp($_)};
-	default {};
+	default {usage()};
+}
+
+sub usage {
+	say "\nThe following commandline options are available:\n";
+	say "\tdelete - move to trash_path; removes from db";
+	say "\tfav - set favourite flag";
+	say "\tnsfw - set the nsfw flag";
+	say "\tvoteup - increse vote value by 1 and change to next";
+	say "\tvotedown - decrese vote value by 1 and change to next";
+	say "\ttpu - upload to tinypic and open link";
+	say "\tteu - search with tineye";
+	say "\t'number' - change wallpaper by that amount";
 }
 
 sub delete_wp {
