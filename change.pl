@@ -36,6 +36,7 @@ sub usage {
 	say "\nThe following commandline options are available:\n";
 	say "\tdelete - move to trash_path; removes from db";
 	say "\tfav - set favourite flag";
+	say "\tgetfav - move flagged with fav to fav_path";
 	say "\tnsfw - set the nsfw flag";
 	say "\tvoteup - increse vote value by 1 and change to next";
 	say "\tvotedown - decrese vote value by 1 and change to next";
