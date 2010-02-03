@@ -2,168 +2,205 @@ use 5.010;
 use strict;
 use warnings;
 
-use lib ".";
-use util;
-use Tie::File;
+use lib "./lib";
+use WallpaperList;
+use Wallpaper;
+use ConfigRW;
 use Cwd qw(abs_path);
+
+use Data::Dumper;
 
 my($image, $x);
 
-die "no config specified" unless -e "config.ini";
-my $ini = readINI("config.ini")->{default};
-my $dir = $ini->{directory};
-my @pictures;
+ConfigRW::load() or die "could not load config";
+my $INI = $ConfigRW::CFG;
 
-die "no in_list specified" unless $ini->{in_list};
+say "loading wallpaper list";
+WallpaperList::init($INI->{db_path},$INI->{wp_path},$INI->{current},$INI->{check_doubles});
 
-unless (-e $ini->{in_list}) {
-	use List::Util 'shuffle';
-	@pictures = piclist($dir);
-	my %in;
-	$in{$_} = 1 for @pictures;
-	@pictures = shuffle keys %in;
-	open(LST,">",$ini->{in_list}) or die "could not write list";
-	foreach (@pictures) {
-		print LST $_ . "\n";
-	}
-	close(LST)
-	
+given ($ARGV[0]) {
+	when('delete') { delete_wp() };
+	when('fav') { fav() };
+	when('getfav') { getfav() };
+	when('tpu') { tpu() };
+	when('teu') { teu() };
+	default {change_wp($_)};
 }
 
-say "loading list";
-
-tie ( my (@in_list), 'Tie::File', $ini->{in_list}) or die "$!";
-
-my $change = $ARGV[0];
-if ((defined $change) and $ini->{out_list}) {
-	tie ( my (@out_list), 'Tie::File', $ini->{out_list}) or die "$!";
-	if ($change eq "lame") {
-		use File::Copy;
-		my $file = pop (@out_list);
-		say "adding $file to lame list";
-		mkdir "./lame/";
-		my $file_part = $file;
-		$file_part =~ s#^.*\\##;
-		move($dir.$file,"./lame/$file_part");
-		if ($ini->{lame_list}) {
-			open(LST,">>",$ini->{lame_list});
-			print LST $file . "\n";
-			close LST;
-		}
-	}
-	elsif ($change eq "fav") {
-		my $file = $out_list[-1];
-		say "adding $file to favorites";
-		if ($ini->{fav_list}) {
-			open(LST,">>",$ini->{fav_list});
-			print LST $file . "\n";
-			close LST;
-		}
-		exit;
-	}
-	elsif ($change <= 0) {
-		$change *= -1;
-		for (0..$change) {
-			unshift(@in_list,pop(@out_list));
-		}
-	}
-	else {
-		for (2..$change) {
-			push(@out_list,shift(@in_list));
-		}
-	}
-	untie(@out_list);
+sub delete_wp {
+	use File::Copy;
+	mkdir $INI->{trash_path} unless( -d $INI->{trash_path});
+	my $current = WallpaperList::current();
+	my $filename = $current;
+	$filename =~ s~.*[/\\]~~;
+	say "moving $current to " . $INI->{trash_path};
+	move($current,$INI->{trash_path}.$filename);
+	WallpaperList::remove_current();
+	change_wp(1);
 }
 
-my $file = shift @in_list;
-my $length = scalar(@in_list);
-untie @in_list or die "$!";
-
-if ($length <= 1) {
-	unlink $ini->{in_list};
+sub fav {
+	my $filename = WallpaperList::current();
+	$filename =~ s~.*[/\\]~~;
+	say "adding $filename to favorites";
+	WallpaperList::fav_current();
 }
 
-die "no file found" unless $file;
-
-
-if ($ini->{out_list}) {
-	open(LST,">>",$ini->{out_list});
-	print LST $file . "\n";
-	close LST;
+sub change_wp {
+	my $mv = shift;
+	my $path = WallpaperList::forward($mv);
+	die "no next" unless $path;
+	say "selecting file: \n$path";
+	die "does not exist!" unless -e $path;
+	set_wallpaper($path);
+	ConfigRW::save($path,WallpaperList::current_position());
 }
 
-say "selecting file: \n$file";
-
-die "does not exist!" unless -e $dir.$file;
-
-create_res($ini->{resulution},"wallpaper");
-create_res($ini->{second_resolution},"wallpaper2") if $ini->{second_resolution};
-
-sub create_res {
+sub set_wallpaper {
+	my $file = shift; 
 	say "opening image";
-	openImage($dir.$file);
-
-	my ($iw,$ih) = getDimensions();
+	
+	Wallpaper::openImage($file);
+	my ($iw,$ih) = Wallpaper::getDimensions();
 	my $iz = $iw/$ih;
-
+	
+	
 	say "image dimensions: $iw x $ih ($iz)";
 
-	my ($rx,$ry) = split(/\D+/,$_[0]);
+	my ($rx,$ry) = split(/\D+/,$INI->{resulution});
 	my $rz = $rx/$ry;
 
 	say "screen resolution: $rx x $ry ($rz)";
 
-	my $abw = 1 + $ini->{max_deformation};
-
+	my $abw = 1 + $INI->{max_deformation};
 
 	if (($iz < $rz * $abw) && ($iz > $rz / $abw)) {
 		say sprintf ("deformation in range %.2f < %.2f < %.2f - resizing to full screen" , $rz / $abw , $iz , $rz*$abw);
-		resize($rx,$ry);
+		Wallpaper::resize($rx,$ry);
 	}
 	else {
 		say sprintf ("deformation out of range %.2f < %.2f < %.2f - resizing while keeping ratio",$rz /$abw , $iz , $rz*$abw);
-		resizeKeep($rx,$ry);
+		Wallpaper::resizeKeep($rx,$ry);
 		say "extending image with background color";
-		extend($rx,$ry,$ini->{taskbar_offset});
+		Wallpaper::extend($rx,$ry,$INI->{taskbar_offset});
 	}
 
 	#liquidResize($rx,$ry);
 	
-	if ($ini->{extend_black}) {
-		extendBlackNorth(split(/\D+/,$ini->{extend_black}));
+	if ($INI->{extend_black}) {
+		Wallpaper::extendBlackNorth(split(/\D+/,$INI->{extend_black}));
 	}
 	
-	if ($ini->{annotate} ne "none") { 
+	if ($INI->{annotate} ne "none") { 
 		say "annotating";
 		my ($filename) = $file;
 		$filename =~ s#\\#/#g;
-		if ($ini->{annotate} eq "path_multiline") {
+		if ($INI->{annotate} eq "path_multiline") {
 			my @filename = reverse split '/', $filename;
-			my $off = $ini->{anno_offset};
+			my $off = $INI->{anno_offset};
 			for (@filename) {
-				annotate($_,$off);
+				Wallpaper::annotate($_,$off);
 				$off += 16
 			}
 		}
 		else {
-			$filename =~ s#.+[\\/]## unless $ini->{annotate} eq "path";
-			annotate($filename,$ini->{anno_offset});
+			$filename =~ s#.+[\\/]## unless $INI->{annotate} eq "path";
+			Wallpaper::annotate($filename,$INI->{anno_offset});
 		}
 	}
 
-	my $filetype = $ini->{filetype} // "bmp";
-	say "saving image as $filetype";
-	saveAs($_[1].".$filetype",$filetype,$file =~ /\.png$/i);
-}
-my $filetype = $ini->{filetype} // "bmp";
-say "calling api to update wallpaper";
-setWallpaper(abs_path("wallpaper.$filetype")); # 
-
-if ($ini->{thumbnail}) {
-	say "creating thumbnail";
-	openImage($dir.$file);
-	resizeKeep(split('x',$ini->{thumbnail}));
-	extendAlphaSaveAsNoHack(split('x',$ini->{thumbnail}),"thumb.png","png");
+	say "saving image";
+	Wallpaper::save();
+	say "calling api to update wallpaper";
+	Wallpaper::setWallpaper();
 }
 
-say "done";
+sub getfav {
+	use File::Copy;
+	my $fav_dir = $INI->{fav_path};
+	
+	say "moving favourites to $fav_dir";
+	mkdir $fav_dir;
+	my $fav = WallpaperList::get_fav();
+	
+	foreach (@$fav) {
+		say $_;
+		copy($INI->{directory}.$_,$fav_dir);
+	}
+}
+
+sub init_ua {
+	use LWP;
+	use LWP::UserAgent;
+	use HTTP::Request::Common qw(POST);
+	my $ua = new LWP::UserAgent;  
+	$ua->agent("wpc.pl");
+	$ua->env_proxy;
+	return $ua;
+}
+
+sub teu {
+	my $file = WallpaperList::current();
+	my $ua = init_ua();
+	
+	say "posting file";
+	my $request = POST 'http://www.tineye.com/search' ,
+			Content_Type => 'form-data',
+			Content      => [ 
+								image   => [$file],
+							];
+							
+	my $response = $ua->request($request);
+	say "calling system";
+	system("start " . $response->header("Location"));
+}
+
+sub tpu {
+	my $file = WallpaperList::current();
+	my $ua = init_ua();
+
+
+	say "requesting user id";
+	my $request = HTTP::Request->new(GET => "http://www.tinypic.com/");
+	my $response = $ua->request($request);
+
+	my $UI;
+	my $upk;
+	my $content = $response->content();
+
+	if ($content =~ m#name="UPLOAD_IDENTIFIER" id="uid" value="([^"]+)"#is) {
+		$UI = $1;
+	}
+	if ($content =~ m#name="upk" value="([^"]+)"#is) {
+		$upk = $1;
+	}
+
+	say "uploading file";
+	$request = POST 'http://s6.tinypic.com/upload.php' ,
+			Content_Type => 'form-data',
+			Content      => [ 
+								the_file   => [$file],
+								UPLOAD_IDENTIFIER => $UI,
+								upk => $upk,
+								action => "upload",
+								shareopt => "true",
+								file_type => "image",
+								dimension => "1600",
+							];
+							
+	$response = $ua->request($request);
+	
+	say "getting direct link";
+	$content = $response->content();
+	$content =~ m#<a href="([^"]+)" target="_blank">Click here</a> to view your image#si;
+
+	$request = HTTP::Request->new(GET => $1);
+	$response = $ua->request($request);
+
+	$content = $response->content();
+
+	$content =~ m#<a href="([^"]+)" class="thickbox">Zoom</a>#si;
+
+	say "calling system";
+	system("start " . $1);
+}
