@@ -25,6 +25,7 @@ sub setWallpaper {
 
 sub openImage {
 	my $file = shift;
+	$PNG_HACK = 1 if ($file =~ /\.png$/i);
 	@$iM = ();
 	$iM->Read($file);
 	if (@$iM > 1) {
@@ -181,7 +182,7 @@ sub extend {
 }
 
 sub save {
-	return saveAs($OUTPUT_FILE,'bmp',$iM->Get('magick') eq 'png');
+	return saveAs($OUTPUT_FILE,'bmp',$PNG_HACK);
 }
 
 sub saveAs {
