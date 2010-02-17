@@ -69,8 +69,12 @@ sub change_wp {
 	die "could not get next" unless $path;
 	say "selecting file: \n$path";
 	die "does not exist!" unless -e $path;
-	set_wallpaper($path);
-	ConfigRW::save($path,WallpaperList::current_position());
+	unless (set_wallpaper($path)) {
+		delete_wp();
+	}
+	else {
+		ConfigRW::save($path,WallpaperList::current_position());
+	}
 }
 
 sub set_wallpaper {
@@ -79,6 +83,7 @@ sub set_wallpaper {
 	
 	Wallpaper::openImage($file);
 	my ($iw,$ih) = Wallpaper::getDimensions();
+	return 0 if (!defined $iw or !defined $ih);
 	my $iz = $iw/$ih;
 	
 	
@@ -132,6 +137,7 @@ sub set_wallpaper {
 	Wallpaper::save();
 	say "calling api to update wallpaper";
 	Wallpaper::setWallpaper();
+	return 1;
 }
 
 sub getfav {
@@ -144,7 +150,7 @@ sub getfav {
 	
 	foreach (@$fav) {
 		say $_;
-		copy($INI->{directory}.$_,$fav_dir);
+		copy($INI->{wp_path}.$_,$fav_dir);
 	}
 }
 
