@@ -25,6 +25,7 @@ sub setWallpaper {
 
 sub openImage {
 	my $file = shift;
+	$PNG_HACK = 0;
 	$PNG_HACK = 1 if ($file =~ /\.png$/i);
 	@$iM = ();
 	$iM->Read($file);
@@ -61,6 +62,13 @@ sub annotate {
 	#undercolor=>'rgba(255,255,255,0.5)',translate=>($off,0)
 	$iM->Annotate(stroke=>'rgba(0,0,0,0.3)', text=>$text, gravity=>'SouthEast', antialias=>'true',strokewidth=>2,geometry=>"+0+$off");
 	$iM->Annotate(fill=>'rgba(255,255,255,0.9)', text=>$text, gravity=>'SouthEast', antialias=>'true',geometry=>"+0+$off");
+}
+
+sub annotateleft {
+	my ($text,$off) = @_;
+	#undercolor=>'rgba(255,255,255,0.5)',translate=>($off,0)
+	$iM->Annotate(stroke=>'rgba(0,0,0,0.3)', text=>$text, gravity=>'SouthWest', antialias=>'true',strokewidth=>2,geometry=>"+0+$off");
+	$iM->Annotate(fill=>'rgba(255,255,255,0.9)', text=>$text, gravity=>'SouthWest', antialias=>'true',geometry=>"+0+$off");
 }
 
 sub sumArray {
