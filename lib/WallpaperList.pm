@@ -24,14 +24,14 @@ sub init {
 	$CURRENT = shift || 1;
 	$CHECK_DOUBLES = shift // 0;
 	say "connecting to database: " . $DB_PATH;
-	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 0,PrintError => 0});
+	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 0,PrintError => 1});
 
 	if($DBH->selectrow_array("SELECT name FROM sqlite_master WHERE type='table' AND name='wallpaper'")) {
 		return 1;
 	}
 	
 	say "creating wallpapers table";
-	$DBH->do("CREATE TABLE wallpaper (position INTEGER UNIQUE, sha1 UNIQUE, path UNIQUE, vote INTEGER, fav, nsfw)") 
+	$DBH->do("CREATE TABLE wallpaper (position int UNIQUE, sha1 clob UNIQUE, path clob UNIQUE, vote int, fav boolean, nsfw boolean, resx int, resy int)") 
 		or die "could not create table";
 	
 	say "adding ". $WP_PATH ." to database";
@@ -206,5 +206,12 @@ sub update_file {
 	unlink($opath);
 }
 
+sub set_current_res {
+	my ($x,$y) = @_;
+	unless ($DBH->do("UPDATE OR FAIL wallpaper SET resx = ? , resy = ? WHERE position = ?" , undef , $x, $y, $CURRENT)) {
+		die "failed to update resolution";
+	}
+	$DBH->commit();
+}
 
 1;

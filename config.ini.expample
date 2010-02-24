@@ -3,6 +3,9 @@
 	;; the output resolution for all converted files 
 resulution=1280x1024
 
+	;; the minimum resolution a image must have or it will be skipped
+min_resulution=1024x768
+
 	;; where are the pictures?!
 	;; this may be a absolute or a relative path (end with slash)
 wp_path=C:\Wallpapers\

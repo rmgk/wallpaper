@@ -69,25 +69,45 @@ sub change_wp {
 	die "could not get next" unless $path;
 	say "selecting file: \n$path";
 	die "does not exist!" unless -e $path;
-	unless (set_wallpaper($path)) {
-		delete_wp();
+	load_wallpaper($path);
+	if (check_wallpaper()) {
+		adjust_wallpaper($path);
+		set_wallpaper();
+		ConfigRW::save($path,WallpaperList::current_position());
 	}
 	else {
-		ConfigRW::save($path,WallpaperList::current_position());
+		change_wp($mv<=>0);
 	}
 }
 
-sub set_wallpaper {
+sub load_wallpaper {
 	my $file = shift; 
 	say "opening image";
 	
 	Wallpaper::openImage($file);
+}
+
+sub check_wallpaper {
 	my ($iw,$ih) = Wallpaper::getDimensions();
+	my ($rx,$ry) = split(/\D+/,$INI->{min_resulution});
 	return 0 if (!defined $iw or !defined $ih);
+	WallpaperList::set_current_res($iw,$ih);
 	my $iz = $iw/$ih;
-	
-	
 	say "image dimensions: $iw x $ih ($iz)";
+	if ($iw < $rx or $ih < $ry) {
+		say "image to small";
+		return 0
+	}
+	else {
+		return 1
+	}
+}
+
+sub adjust_wallpaper {
+	my $file = shift; 
+	my ($iw,$ih) = Wallpaper::getDimensions();
+	
+	my $iz = $iw/$ih;
 
 	my ($rx,$ry) = split(/\D+/,$INI->{resulution});
 	my $rz = $rx/$ry;
@@ -135,6 +155,10 @@ sub set_wallpaper {
 
 	say "saving image";
 	Wallpaper::save();
+	return 1;
+}
+
+sub set_wallpaper {
 	say "calling api to update wallpaper";
 	Wallpaper::setWallpaper();
 	return 1;
