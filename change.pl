@@ -28,6 +28,7 @@ given ($ARGV[0]) {
 	when('votedown') {vote(-1) };
 	when('tpu') { tpu() };
 	when('teu') { teu() };
+	when('foldervotelist') { make_folder_vote_list() };
 	when(/-?\d+/) {change_wp($_)};
 	default {usage()};
 }
@@ -68,7 +69,10 @@ sub change_wp {
 	my $path = WallpaperList::forward($mv);
 	die "could not get next" unless $path;
 	say "selecting file: \n$path";
-	die "does not exist!" unless -e $path;
+	unless (-e $path) {
+		delete_wp();
+		return;
+	}
 	load_wallpaper($path);
 	if (check_wallpaper()) {
 		adjust_wallpaper($path);
@@ -252,4 +256,19 @@ sub tpu {
 
 	say "calling system";
 	system("start " . $1);
+}
+
+sub make_folder_vote_list {
+	my $ary = WallpaperList::get_folder_vote_list();
+	my $h;
+	for my $a (@$ary) {
+		$a->[0] =~ s/^((?:[^\\]*\\){0,3}).*$/$1/;
+		$h->{$a->[0]}->[$a->[1] < 0] += $a->[1];
+	}
+	my $f;
+	open ($f,">list.txt");
+	my $t = Dumper $h;
+	$t =~ s/\\\\/\\/g;
+	print $f $t;
+	close $f;
 }

@@ -214,4 +214,8 @@ sub set_current_res {
 	$DBH->commit();
 }
 
+sub get_folder_vote_list {
+	return $DBH->selectall_arrayref("SELECT path, vote FROM wallpaper WHERE vote IS NOT NULL AND vote != 0");
+}
+
 1;
