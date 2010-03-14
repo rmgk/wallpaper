@@ -219,6 +219,7 @@ sub tpu {
 
 	my $UI;
 	my $upk;
+	my $server;
 	my $content = $response->content();
 
 	if ($content =~ m#name="UPLOAD_IDENTIFIER" id="uid" value="([^"]+)"#is) {
@@ -227,9 +228,12 @@ sub tpu {
 	if ($content =~ m#name="upk" value="([^"]+)"#is) {
 		$upk = $1;
 	}
+	if ($content =~ m#<form action="([^"]+)" method="post"#i) {
+		$server = $1;
+	}
 
 	say "uploading file";
-	$request = POST 'http://s6.tinypic.com/upload.php' ,
+	$request = POST $server ,
 			Content_Type => 'form-data',
 			Content      => [ 
 								the_file   => [$file],
@@ -245,6 +249,7 @@ sub tpu {
 	
 	say "getting direct link";
 	$content = $response->content();
+	
 	$content =~ m#<a href="([^"]+)" target="_blank">Click here</a> to view your image#si;
 
 	$request = HTTP::Request->new(GET => $1);
