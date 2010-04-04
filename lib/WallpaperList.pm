@@ -85,16 +85,25 @@ sub nsfw_current {
 
 sub forward {
 	my $mv = shift;
+	my $max = $DBH->selectrow_array("SELECT MAX(position) FROM wallpaper");
 	$CURRENT += $mv // 1;
 	if ($CURRENT < 1) {
 		$CURRENT = 1;
 		return;
 	}
+	if ($CURRENT > $max) {
+		$CURRENT = $max;
+		return;
+	}
 	my $cur = current();
 	while (!$cur) {
 		$CURRENT += $mv<=>0; #vorzeichen von $mv;
-			if ($CURRENT < 1) {
+			if ($CURRENT < 1  || $CURRENT > $max) {
 				$CURRENT = 1;
+				return;
+			}
+			if ($CURRENT > $max) {
+				$CURRENT = $max;
 				return;
 			}
 		$cur = current();
@@ -103,7 +112,7 @@ sub forward {
 }
 
 sub backward {
-	return forward(  (- shift) // - 1 );
+	return forward(  (- shift) // -1 );
 }
 
 sub get_fav {

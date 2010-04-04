@@ -7,6 +7,7 @@ use WallpaperList;
 use Wallpaper;
 use ConfigRW;
 use Cwd qw(abs_path);
+use File::Copy;
 
 use Data::Dumper;
 
@@ -29,6 +30,7 @@ given ($ARGV[0]) {
 	when('tpu') { tpu() };
 	when('teu') { teu() };
 	when('foldervotelist') { make_folder_vote_list() };
+	when('precompile') { precompile_wallpapers() };
 	when(/-?\d+/) {change_wp($_)};
 	default {usage()};
 }
@@ -69,6 +71,13 @@ sub change_wp {
 	my $path = WallpaperList::forward($mv);
 	die "could not get next" unless $path;
 	say "selecting file: \n$path";
+	if (-e $path . '.bmp') {
+		say "using procompiled bitmap";
+		copy($path . '.bmp','wallpaper.bmp');
+		set_wallpaper();
+		ConfigRW::save($path,WallpaperList::current_position());
+		return;
+	}
 	unless (-e $path) {
 		delete_wp();
 		return;
@@ -81,6 +90,22 @@ sub change_wp {
 	}
 	else {
 		change_wp($mv<=>0);
+	}
+}
+
+sub precompile_wallpapers {
+	WallpaperList::forward(-10000000000000);
+	my $path = WallpaperList::current();
+	while($path) {
+		say $path;
+		say WallpaperList::current_position();
+		load_wallpaper($path);
+		if (check_wallpaper()) {
+			adjust_wallpaper($path);
+			say 'moving wallpaper';
+			move('wallpaper.bmp',$path . '.bmp');
+		}
+		$path = WallpaperList::forward(1);
 	}
 }
 
