@@ -71,9 +71,9 @@ sub change_wp {
 	my $path = WallpaperList::forward($mv);
 	die "could not get next" unless $path;
 	say "selecting file: \n$path";
-	if (-e $path . '.bmp') {
+	if (-e $path . '.pcw') {
 		say "using procompiled bitmap";
-		copy($path . '.bmp','wallpaper.bmp');
+		copy($path . '.pcw','wallpaper.bmp');
 		set_wallpaper();
 		ConfigRW::save($path,WallpaperList::current_position());
 		return;
@@ -103,7 +103,7 @@ sub precompile_wallpapers {
 		if (check_wallpaper()) {
 			adjust_wallpaper($path);
 			say 'moving wallpaper';
-			move('wallpaper.bmp',$path . '.bmp');
+			move('wallpaper.bmp',$path . '.pcw');
 		}
 		$path = WallpaperList::forward(1);
 	}
