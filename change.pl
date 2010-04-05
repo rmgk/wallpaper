@@ -11,6 +11,14 @@ use File::Copy;
 
 use Data::Dumper;
 
+if (-e ".lock") {
+	die "lock in place delete .lock if program is not running";
+} 
+else {
+	open(T,">.lock");
+	close T;
+}
+
 my($image, $x);
 
 ConfigRW::load() or die "could not load config";
@@ -34,6 +42,8 @@ given ($ARGV[0]) {
 	when(/-?\d+/) {change_wp($_)};
 	default {usage()};
 }
+
+unlink ".lock";
 
 sub usage {
 	say "\nThe following commandline options are available:\n";
@@ -73,26 +83,30 @@ sub change_wp {
 	say "selecting file: \n$path";
 	if (-e $path . '.pcw') {
 		say "using procompiled bitmap";
-		copy($path . '.pcw','wallpaper.bmp');
+		move($path . '.pcw','wallpaper.bmp');
 		set_wallpaper();
 		ConfigRW::save($path,WallpaperList::current_position());
-		return;
-	}
-	unless (-e $path) {
-		delete_wp();
-		return;
-	}
-	load_wallpaper($path);
-	if (check_wallpaper()) {
-		adjust_wallpaper($path);
-		say "saving image";
-		Wallpaper::save();
-		set_wallpaper();
-		ConfigRW::save($path,WallpaperList::current_position());
+		
 	}
 	else {
-		change_wp($mv<=>0);
+		unless (-e $path) {
+			delete_wp();
+			return;
+		}
+		load_wallpaper($path);
+		if (check_wallpaper()) {
+			adjust_wallpaper($path);
+			say "saving image";
+			Wallpaper::save();
+			set_wallpaper();
+			ConfigRW::save($path,WallpaperList::current_position());
+		}
+		else {
+			change_wp($mv<=>0);
+		}
 	}
+	precompile_wallpaper(WallpaperList::forward(1)) if $INI->{precompile_next};
+	
 }
 
 sub precompile_wallpapers {

@@ -10,6 +10,10 @@ min_resulution=1024x768
 	;; this may be a absolute or a relative path (end with slash)
 wp_path=C:\Wallpapers\
 
+	;; shall we compute the next wallpaper in advante
+	;; this will significantly speed up the time between program start and changing the wallpaper
+precompile_next=1
+
 	;; checks all files for doubles this will create and store a hash for all fields 
 	;; if you have a lot of files this will take very long
 check_doubles=0
