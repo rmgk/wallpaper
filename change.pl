@@ -85,6 +85,8 @@ sub change_wp {
 	load_wallpaper($path);
 	if (check_wallpaper()) {
 		adjust_wallpaper($path);
+		say "saving image";
+		Wallpaper::save();
 		set_wallpaper();
 		ConfigRW::save($path,WallpaperList::current_position());
 	}
@@ -97,15 +99,19 @@ sub precompile_wallpapers {
 	WallpaperList::forward(-10000000000000);
 	my $path = WallpaperList::current();
 	while($path) {
-		say $path;
 		say WallpaperList::current_position();
-		load_wallpaper($path);
-		if (check_wallpaper()) {
-			adjust_wallpaper($path);
-			say 'moving wallpaper';
-			move('wallpaper.bmp',$path . '.pcw');
-		}
+		precompile_wallpaper($path);
 		$path = WallpaperList::forward(1);
+	}
+}
+
+sub precompile_wallpaper {
+	my $path = shift;
+	say "precompiling $path";
+	load_wallpaper($path);
+	if (check_wallpaper()) {
+		adjust_wallpaper($path);
+		Wallpaper::saveAs($path . '.pcw','bmp');
 	}
 }
 
@@ -181,9 +187,6 @@ sub adjust_wallpaper {
 			Wallpaper::annotate($filename,$INI->{anno_offset});
 		}
 	}
-
-	say "saving image";
-	Wallpaper::save();
 	return 1;
 }
 

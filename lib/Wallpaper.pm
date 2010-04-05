@@ -195,6 +195,7 @@ sub save {
 
 sub saveAs {
 	my ($filename,$filetype,$png_hack) = @_;
+	$png_hack //= $PNG_HACK;
 
 	#$iM->Quantize(colorspace=>'gray');
 	#say $iM->get("colorspace");
