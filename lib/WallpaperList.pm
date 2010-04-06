@@ -24,7 +24,7 @@ sub init {
 	$CURRENT = shift || 1;
 	$CHECK_DOUBLES = shift // 0;
 	say "connecting to database: " . $DB_PATH;
-	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 0,PrintError => 1});
+	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 1,PrintError => 1});
 
 	if($DBH->selectrow_array("SELECT name FROM sqlite_master WHERE type='table' AND name='wallpaper'")) {
 		return 1;
@@ -135,7 +135,9 @@ sub add_folder {
 	$STH_UPDATE = $DBH->prepare("UPDATE wallpaper SET path = ? WHERE sha1 = ?");
 	$PATHS = $DBH->selectall_hashref("SELECT path, sha1 FROM wallpaper","path");
 	$SHAS = $DBH->selectall_hashref("SELECT sha1, path FROM wallpaper","sha1");
+	$DBH->{AutoCommit} = 0;
 	_add_folder($base,$path);
+	$DBH->{AutoCommit} = 1;
 }
 
 sub _add_folder {

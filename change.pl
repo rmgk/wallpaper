@@ -11,12 +11,12 @@ use File::Copy;
 
 use Data::Dumper;
 
-if (-e ".lock") {
-	die "lock in place delete .lock if program is not running";
+if (-e '.lock') {
+	die 'lock in place delete .lock if program is not running';
 } 
 else {
-	open(T,">.lock");
-	close T;
+	open my $l ,'>', '.lock';
+	close $l;
 }
 
 my($image, $x);
@@ -43,7 +43,7 @@ given ($ARGV[0]) {
 	default {usage()};
 }
 
-unlink ".lock";
+unlink '.lock' if -e '.lock';
 
 sub usage {
 	say "\nThe following commandline options are available:\n";
@@ -105,22 +105,33 @@ sub change_wp {
 			change_wp($mv<=>0);
 		}
 	}
-	precompile_wallpaper(WallpaperList::forward(1)) if $INI->{precompile_next};
+	precompile_wallpapers($INI->{precompile_next});
 	
 }
 
 sub precompile_wallpapers {
-	WallpaperList::forward(-10000000000000);
-	my $path = WallpaperList::current();
-	while($path) {
-		say WallpaperList::current_position();
+	my $count = shift // -1;
+	if (-e '.pclock') {
+		say 'lock in place delete .pclock if program is not running';
+		return 0;
+	} 
+	else {
+		open my $l ,'>', '.pclock';
+		close $l;
+	}
+	unlink '.lock' if -e '.lock';
+	#WallpaperList::forward(-10000000000000);
+	my $path = WallpaperList::forward(1);
+	while($path && $count--) {
 		precompile_wallpaper($path);
 		$path = WallpaperList::forward(1);
 	}
+	unlink '.pclock' if -e '.pclock';
 }
 
 sub precompile_wallpaper {
 	my $path = shift;
+	return 0 if -e $path . '.pcw';
 	say "precompiling $path";
 	load_wallpaper($path);
 	if (check_wallpaper()) {
@@ -238,6 +249,8 @@ sub teu {
 	my $file = WallpaperList::current();
 	my $ua = init_ua();
 	
+	unlink '.lock' if -e '.lock';
+	
 	say "posting file";
 	my $request = POST 'http://www.tineye.com/search' ,
 			Content_Type => 'form-data',
@@ -253,6 +266,8 @@ sub teu {
 sub tpu {
 	my $file = WallpaperList::current();
 	my $ua = init_ua();
+	
+	unlink '.lock' if -e '.lock';
 
 
 	say "requesting user id";
