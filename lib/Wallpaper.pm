@@ -73,36 +73,37 @@ sub annotateleft {
 
 sub sumArray {
 	my ($a,$b,$c) = @_;
-	my @most;
+	my $most;
 	my $count = 0;
 	my $i;
-	my $n = 0;
 	my @std;
+	my @m;
+	my ($c1, $c2, $c3);
 	foreach (0..$#$a) {
-		my $ti = ++ $i->{int($a->[$_]/32)}->{int($b->[$_]/32)}->{int($c->[$_]/32)};
+		$c1 = int($a->[$_]/16);
+		$c2 = int($b->[$_]/16);
+		$c3 = int($c->[$_]/16);
+		my $ti = ++ $i->{$c1}->{$c2}->{$c3};
 		if ($ti>$count) {
 			$count = $ti;
-			$most[0] += $a->[$_];
-			$most[1] += $b->[$_];
-			$most[2] += $c->[$_];
-			$n ++;
+			$m[0] = $c1;
+			$m[1] = $c2;
+			$m[2] = $c3;
 		}
-		else {
-			$std[0] += $a->[$_];
-			$std[1] += $b->[$_];
-			$std[2] += $c->[$_];
-		}
+		$most->{$c1}->{$c2}->{$c3}->[0] += $a->[$_];
+		$most->{$c1}->{$c2}->{$c3}->[1] += $b->[$_];
+		$most->{$c1}->{$c2}->{$c3}->[2] += $c->[$_];
+		$std[0] += $a->[$_];
+		$std[1] += $b->[$_];
+		$std[2] += $c->[$_];
 	}
 	
-	if ($n > (@$a/5)) {
+	if ($count > (@$a/20)) {
 		say "using averaged main border color";
-		return $most[0]/$n,$most[1]/$n,$most[2]/$n;
+		return $most->{$m[0]}->{$m[1]}->{$m[2]}->[0]/$count,$most->{$m[0]}->{$m[1]}->{$m[2]}->[1]/$count,$most->{$m[0]}->{$m[1]}->{$m[2]}->[2]/$count;
 	}
 	else {
 		say "using general average border color";
-		$std[0] += $most[0];
-		$std[1] += $most[1];
-		$std[2] += $most[2];
 		
 		my ($r,$g,$b) = ($std[0]/@$a,$std[1]/@$a,$std[2]/@$a);
 		# my $avg = ($r+$b+$g) / 3;
