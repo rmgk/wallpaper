@@ -176,7 +176,7 @@ sub adjust_wallpaper {
 		Wallpaper::extend($rx,$ry,$INI->{taskbar_offset});
 	}
 
-	#liquidResize($rx,$ry);
+	#Wallpaper::liquidResize($rx,$ry);
 	
 	if ($INI->{extend_black}) {
 		Wallpaper::extendBlackNorth(split(/\D+/,$INI->{extend_black}));
