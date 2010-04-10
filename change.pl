@@ -179,8 +179,9 @@ sub adjust_wallpaper {
 	
 	if ($INI->{annotate} ne "none") { 
 		say "annotating";
+		$file =~ s'\\'/'g;
 		if ($INI->{annotate} eq "path_multiline") {
-			my @filename = reverse split '/', $file;
+			my @filename = reverse split m'/', $file;
 			my $off = $INI->{anno_offset};
 			for (@filename) {
 				Wallpaper::annotate($_,$off);
@@ -188,7 +189,7 @@ sub adjust_wallpaper {
 			}
 		}
 		else {
-			$file =~ s#.+[\\/]## unless $INI->{annotate} eq "path";
+			$file =~ s#.+/## unless $INI->{annotate} eq "path";
 			Wallpaper::annotate($file,$INI->{anno_offset});
 		}
 	}
