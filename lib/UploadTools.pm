@@ -1,3 +1,5 @@
+package UploadTools;
+
 use 5.010;
 use strict;
 use warnings;
@@ -89,3 +91,5 @@ sub tpu {
 	say "calling system";
 	system("start " . $1);
 }
+
+1;
