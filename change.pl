@@ -208,7 +208,7 @@ sub getfav {
 	
 	say "moving favourites to $fav_dir";
 	mkdir $fav_dir or die 'could not create folder'.$fav_dir.": $!" unless -e $fav_dir;
-	my $fav = WallpaperList::get_fav_list();
+	my $fav = WallpaperList::get_list('fav = 1');
 	
 	foreach (@$fav) {
 		say $_->[0];
@@ -217,7 +217,8 @@ sub getfav {
 }
 
 sub rand_wp {
-	my $fav = WallpaperList::get_fav_list();
+	say $INI->{rand_criteria};
+	my $fav = WallpaperList::get_list($INI->{rand_criteria});
 	my $sel = $fav->[int rand @$fav];
 	gen_wp($sel->[0],$sel->[1]);
 	set_wallpaper($sel->[1]);

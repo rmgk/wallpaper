@@ -110,8 +110,11 @@ sub max_pos {
 	return $DBH->selectrow_array("SELECT MAX(position) FROM wallpaper");
 }
 
-sub get_fav_list {
-	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE fav = 1");
+#$criteria -> \@[$path,$sha]
+#takes a sql string of criteria and returns a list of paths and shas
+sub get_list {
+	my $criteria = shift;
+	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE ($criteria)");
 }
 
 sub determine_order {
