@@ -3,47 +3,34 @@ use strict;
 use warnings;
 
 use lib "./lib";
+
 use WallpaperList;
 use Wallpaper;
-use ConfigRW;
+use WPConfig;
 use Cwd qw(abs_path);
 use File::Copy;
 
-use Data::Dumper;
+my $INI = WPConfig::load() or die "could not load config";
 
-if (-e '.lock') {
-	die 'lock in place delete .lock if program is not running';
-} 
-else {
-	open my $l ,'>', '.lock';
-	close $l;
-}
+#say "loading wallpaper list";
+#WallpaperList::init($INI->{db_path},$INI->{wp_path},$INI->{current},$INI->{check_doubles});
 
-my($image, $x);
-
-ConfigRW::load() or die "could not load config";
-my $INI = $ConfigRW::CFG;
-
-say "loading wallpaper list";
-WallpaperList::init($INI->{db_path},$INI->{wp_path},$INI->{current},$INI->{check_doubles});
-
-given ($ARGV[0]) {
+foreach (@ARGV) {
 	when(undef) {usage()};
 	when('delete') { delete_wp() };
-	when('fav') { WallpaperList::fav_current() };
+	when('fav') { set_fav() };
 	when('getfav') { getfav() };
-	when('nsfw') {WallpaperList::nsfw_current() };
+	when('nsfw') { set_nsfw() };
 	when('voteup') {vote(1) };
 	when('votedown') {vote(-1) };
 	when('tpu') { tpu() };
 	when('teu') { teu() };
-	when('foldervotelist') { make_folder_vote_list() };
 	when('precompile') { precompile_wallpapers() };
+	when('next') { next_wp() };
+	when('prev') { prev_wp() };
 	when(/-?\d+/) {change_wp($_)};
 	default {usage()};
 }
-
-unlink '.lock' if -e '.lock';
 
 sub usage {
 	say "\nThe following commandline options are available:\n";
@@ -58,75 +45,67 @@ sub usage {
 	say "\t'number' - change wallpaper by that amount";
 }
 
+sub set_fav {
+	WallpaperList::set_fav($INI->{current});
+}
+
+sub set_nsfw {
+	WallpaperList::set_nsfw($INI->{current});
+}
+
 sub delete_wp {
-	use File::Copy;
-	mkdir $INI->{trash_path} unless( -d $INI->{trash_path});
-	my $current = WallpaperList::current();
-	my $filename = $current;
-	$filename =~ s~.*[/\\]~~;
-	say "moving $current to " . $INI->{trash_path};
-	move($current,$INI->{trash_path}.$filename);
-	WallpaperList::remove_current();
-	change_wp(1);
+	my ($sha,$path) = WallpaperList::get_data($INI->{position});
+	mkdir folder('trash') or die 'could not create folder'.folder('trash').": $!" unless( -d folder('trash'));
+	say "moving ". $path ." to " . folder('trash');
+	open my $f, ">>", folder('trash') . '_map.txt' or die "could not open ". folder('trash') . '_map.txt:' . $!;
+	print $f $INI->{current} . "=" . $path;
+	close $f;
+	move(folder('wp') . $path,folder('trash') . $INI->{current});
+	WallpaperList::delete($INI->{current});
 }
 
 sub vote {
 	my $vote = shift;
-	WallpaperList::vote_current($vote);
-	change_wp(1);
+	WallpaperList::vote($INI->{current},$vote);
 }
 
 sub change_wp {
 	my $mv = shift;
-	my $path = WallpaperList::forward($mv);
-	die "could not get next" unless $path;
+	my ($sha,$rel_path) = WallpaperList::get_data($INI->{position}+$mv);
+	my $path = folder('wp').$rel_path;
+	die "could not get data" unless $sha;
+	mkdir folder('gen') or die 'could not create folder'.folder('gen').": $!" unless -e folder('gen');
 	say "selecting file: \n$path";
-	if (-e $path . '.pcw') {
-		say "using procompiled bitmap";
-		move($path . '.pcw','wallpaper.bmp');
-		set_wallpaper();
-		ConfigRW::save($path,WallpaperList::current_position());
-		
+	if (-e folder('gen') . $sha ) {
+		say "using pregenerated bitmap";
+		set_wallpaper(folder('gen') . $sha);
 	}
 	else {
 		unless (-e $path) {
-			delete_wp();
+			WallpaperList::delete($sha);
 			return;
 		}
+		
 		load_wallpaper($path);
-		if (check_wallpaper()) {
-			adjust_wallpaper($path);
-			say "saving image";
-			Wallpaper::save();
-			set_wallpaper();
-			ConfigRW::save($path,WallpaperList::current_position());
+		if (!check_wallpaper()) {
+			WallpaperList::remove_position($sha);
+			return change_wp($mv);
 		}
-		else {
-			change_wp($mv<=>0);
-		}
+		adjust_wallpaper($rel_path);
+		say "saving image";
+		Wallpaper::saveAs(folder('gen').$sha, 'bmp');
+		set_wallpaper($sha);
 	}
-	precompile_wallpapers($INI->{precompile_next});
 	
 }
 
 sub precompile_wallpapers {
 	my $count = shift // -1;
-	if (-e '.pclock') {
-		say 'lock in place delete .pclock if program is not running';
-		return 0;
-	} 
-	else {
-		open my $l ,'>', '.pclock';
-		close $l;
-	}
-	unlink '.lock' if -e '.lock';
-	#WallpaperList::forward(-10000000000000);
 	my $path = WallpaperList::forward(1);
 	while($path && $count--) {
 		precompile_wallpaper($path);
 		$path = WallpaperList::forward(1);
 	}
-	unlink '.pclock' if -e '.pclock';
 }
 
 sub precompile_wallpaper {
@@ -151,7 +130,6 @@ sub check_wallpaper {
 	my ($iw,$ih) = Wallpaper::getDimensions();
 	my ($rx,$ry) = split(/\D+/,$INI->{min_resulution});
 	return 0 if (!defined $iw or !defined $ih);
-	WallpaperList::set_current_res($iw,$ih);
 	my $iz = $iw/$ih;
 	say "image dimensions: $iw x $ih ($iz)";
 	if ($iw < $rx or $ih < $ry) {
@@ -195,12 +173,8 @@ sub adjust_wallpaper {
 	
 	if ($INI->{annotate} ne "none") { 
 		say "annotating";
-		my ($filename) = $file;
-		my $p = $INI->{wp_path};
-		$filename =~ s/^\Q$p\E//i;
-		$filename =~ s#\\#/#g;
 		if ($INI->{annotate} eq "path_multiline") {
-			my @filename = reverse split '/', $filename;
+			my @filename = reverse split '/', $file;
 			my $off = $INI->{anno_offset};
 			for (@filename) {
 				Wallpaper::annotate($_,$off);
@@ -208,8 +182,8 @@ sub adjust_wallpaper {
 			}
 		}
 		else {
-			$filename =~ s#.+[\\/]## unless $INI->{annotate} eq "path";
-			Wallpaper::annotate($filename,$INI->{anno_offset});
+			$file =~ s#.+[\\/]## unless $INI->{annotate} eq "path";
+			Wallpaper::annotate($file,$INI->{anno_offset});
 		}
 	}
 	return 1;
@@ -217,120 +191,33 @@ sub adjust_wallpaper {
 
 sub set_wallpaper {
 	say "calling api to update wallpaper";
-	Wallpaper::setWallpaper();
+	Wallpaper::setWallpaper(folder('gen') . shift);
 	return 1;
 }
 
 sub getfav {
 	use File::Copy;
-	my $fav_dir = $INI->{fav_path};
+	my $fav_dir = folders('fav');
 	
 	say "moving favourites to $fav_dir";
-	mkdir $fav_dir;
-	my $fav = WallpaperList::get_fav();
+	mkdir $fav_dir or die 'could not create folder'.$fav_dir.": $!" unless -e $fav_dir;
+	my $fav = WallpaperList::get_fav_list();
 	
 	foreach (@$fav) {
 		say $_;
-		copy($INI->{wp_path}.$_,$fav_dir);
+		copy(folder('wp').$_,$fav_dir);
 	}
-}
-
-sub init_ua {
-	use LWP;
-	use LWP::UserAgent;
-	use HTTP::Request::Common qw(POST);
-	my $ua = new LWP::UserAgent;  
-	$ua->agent("wpc.pl");
-	$ua->env_proxy;
-	return $ua;
-}
-
-sub teu {
-	my $file = WallpaperList::current();
-	my $ua = init_ua();
-	
-	unlink '.lock' if -e '.lock';
-	
-	say "posting file";
-	my $request = POST 'http://www.tineye.com/search' ,
-			Content_Type => 'form-data',
-			Content      => [ 
-								image   => [$file],
-							];
-							
-	my $response = $ua->request($request);
-	say "calling system";
-	system("start " . $response->header("Location"));
 }
 
 sub tpu {
-	my $file = WallpaperList::current();
-	my $ua = init_ua();
-	
-	unlink '.lock' if -e '.lock';
-
-
-	say "requesting user id";
-	my $request = HTTP::Request->new(GET => "http://www.tinypic.com/");
-	my $response = $ua->request($request);
-
-	my $UI;
-	my $upk;
-	my $server;
-	my $content = $response->content();
-
-	if ($content =~ m#name="UPLOAD_IDENTIFIER" id="uid" value="([^"]+)"#is) {
-		$UI = $1;
-	}
-	if ($content =~ m#name="upk" value="([^"]+)"#is) {
-		$upk = $1;
-	}
-	if ($content =~ m#<form action="([^"]+)" method="post"#i) {
-		$server = $1;
-	}
-
-	say "uploading file";
-	$request = POST $server ,
-			Content_Type => 'form-data',
-			Content      => [ 
-								the_file   => [$file],
-								UPLOAD_IDENTIFIER => $UI,
-								upk => $upk,
-								action => "upload",
-								shareopt => "true",
-								file_type => "image",
-								dimension => "1600",
-							];
-							
-	$response = $ua->request($request);
-	
-	say "getting direct link";
-	$content = $response->content();
-	
-	$content =~ m#<a href="([^"]+)" target="_blank">Click here</a> to view your image#si;
-
-	$request = HTTP::Request->new(GET => $1);
-	$response = $ua->request($request);
-
-	$content = $response->content();
-
-	$content =~ m#<a href="([^"]+)" class="thickbox">Zoom</a>#si;
-
-	say "calling system";
-	system("start " . $1);
+	require UploadTools;
+	my ($sha,$path) = WallpaperList::get_data($INI->{position});
+	UploadTools::tpu(folder('wp') . $path);
 }
 
-sub make_folder_vote_list {
-	my $ary = WallpaperList::get_folder_vote_list();
-	my $h;
-	for my $a (@$ary) {
-		$a->[0] =~ s/^((?:[^\\]*\\){0,3}).*$/$1/;
-		$h->{$a->[0]}->[$a->[1] < 0] += $a->[1];
-	}
-	my $f;
-	open ($f,">list.txt");
-	my $t = Dumper $h;
-	$t =~ s/\\\\/\\/g;
-	print $f $t;
-	close $f;
+sub teu {
+	require UploadTools;
+	my ($sha,$path) = WallpaperList::get_data($INI->{position});
+	UploadTools::teu(folder('wp') . $path);
 }
+

@@ -14,13 +14,14 @@ my $iM = Image::Magick->new;
 use constant SPI_SETDESKWALLPAPER  => 20;
 use constant SPIF_UPDATEANDSENDINI => 3;
 
-my $OUTPUT_FILE = Cwd::getcwd() . '/wallpaper.bmp';
 my $PNG_HACK;
 
 
 sub setWallpaper {
+	my $wp = shift;
+	$wp = Cwd::getcwd() . $wp
 	my $syspinf = Win32::API->new('user32','SystemParametersInfo', ["I","I","P","I"], "I") or die "Could not import function.\n";
-	$syspinf->Call(SPI_SETDESKWALLPAPER, 0, $OUTPUT_FILE, SPIF_UPDATEANDSENDINI);
+	$syspinf->Call(SPI_SETDESKWALLPAPER, 0, $wp, SPIF_UPDATEANDSENDINI);
 }
 
 sub openImage {
@@ -188,10 +189,6 @@ sub extend {
 	}
 
 
-}
-
-sub save {
-	return saveAs($OUTPUT_FILE,'bmp',$PNG_HACK);
 }
 
 sub saveAs {

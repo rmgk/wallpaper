@@ -15,23 +15,21 @@ my $STH_INSERT;
 my $STH_UPDATE;
 my $PATHS;
 my $SHAS;
-my $CURRENT;
 my $CHECK_DOUBLES;
 
 sub init {
 	$DB_PATH = shift;
 	$WP_PATH = shift;
-	$CURRENT = shift || 1;
 	$CHECK_DOUBLES = shift // 0;
 	say "connecting to database: " . $DB_PATH;
-	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 1,PrintError => 1});
+	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 0,PrintError => 1});
 
 	if($DBH->selectrow_array("SELECT name FROM sqlite_master WHERE type='table' AND name='wallpaper'")) {
 		return 1;
 	}
 	
 	say "creating wallpapers table";
-	$DBH->do("CREATE TABLE wallpaper (position int UNIQUE, sha1 clob UNIQUE, path clob UNIQUE, vote int, fav boolean, nsfw boolean, resx int, resy int)") 
+	$DBH->do("CREATE TABLE wallpaper (position INT UNIQUE, sha1 CHAR UNIQUE, path CHAR UNIQUE, vote INT, fav INT, nsfw INT)") 
 		or die "could not create table";
 	
 	say "adding ". $WP_PATH ." to database";
@@ -58,27 +56,34 @@ sub current_position {
 	return $CURRENT;
 }
 
-sub remove_current {
-	$DBH->do("DELETE FROM wallpaper WHERE position = ?", undef, $CURRENT);
-	$DBH->commit();
-}
-sub fav_current {
-	$DBH->do("UPDATE wallpaper SET fav = 1 WHERE position = ?", undef, $CURRENT);
-	$DBH->commit();
-}
-
-sub vote_current {
-	my $vote = shift;
-	my ($cur) = $DBH->selectrow_array("SELECT vote FROM wallpaper WHERE position = ?",undef,$CURRENT);
-	$cur //= 0;
-	say "changing vote to " . ($cur + $vote);
-	unless ($DBH->do("UPDATE OR FAIL wallpaper SET vote = ? WHERE position = ?" , undef , ($cur + $vote),$CURRENT)) {
-		die "failed to update vote";
-	}
+#$sha
+#deletes row of $sha from table
+sub delete {
+	my $sha = shift;
+	$DBH->do("DELETE FROM wallpaper WHERE sha1 = ?", undef, $sha);
 	$DBH->commit();
 }
 
-sub nsfw_current {
+#$sha
+#sets fav for $sha
+sub set_fav {
+	my $sha = shift;
+	$DBH->do("UPDATE wallpaper SET fav = 1 WHERE sha1 = ?", undef, $sha);
+	$DBH->commit();
+}
+
+#$sha, $vote
+#increases vote amount of $sha by $vote
+sub vote {
+	my ($sha,$vote) = @_;
+	$DBH->do("UPDATE OR FAIL wallpaper SET vote = vote + ? WHERE sha1 = ?" , undef , $vote,$CURRENT)
+		or die 'failed to update vote';
+	$DBH->commit();
+}
+
+#$sha
+#sets nsfw for $sha
+sub set_nsfw {
 	$DBH->do("UPDATE wallpaper SET nsfw = 1 WHERE position = ?", undef, $CURRENT);
 	$DBH->commit();
 }
@@ -115,7 +120,7 @@ sub backward {
 	return forward(  (- shift) // -1 );
 }
 
-sub get_fav {
+sub get_fav_list {
 	return $DBH->selectcol_arrayref("SELECT path FROM wallpaper WHERE fav = 1");
 }
 
