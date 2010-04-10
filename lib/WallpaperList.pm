@@ -4,6 +4,8 @@ use 5.010;
 use strict;
 use warnings;
 
+use Carp;
+
 use DBI;
 use Digest::SHA;
 
@@ -18,8 +20,8 @@ my $SHAS;
 my $CHECK_DOUBLES;
 
 sub init {
-	$DB_PATH = shift;
-	$WP_PATH = shift;
+	$DB_PATH = shift or croak 'db_path not defined';
+	$WP_PATH = shift or croak 'wp_path not defined';
 	$CHECK_DOUBLES = shift // 0;
 	say "connecting to database: " . $DB_PATH;
 	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 0,PrintError => 1});
@@ -38,22 +40,26 @@ sub init {
 	determine_order();
 }
 
-sub current {
-	my @data = $DBH->selectrow_array("SELECT path, sha1 FROM wallpaper WHERE position = ?",undef,$CURRENT);
-	if ($data[0] and !$data[1]) {
-		my $sha = $SHA->addfile($WP_PATH . $data[0],"b")->hexdigest;
-		$sha or die "could not get sha of $data[0]";
-		unless ($DBH->do("UPDATE OR FAIL wallpaper SET sha1 = ? WHERE position = ?",undef,$sha,$CURRENT)) {
-			die "failed to update sha1 value. maybe duplicate? (not implemented yet)";
+#$position -> ($path,$sha)
+#returns the path and sha value for the given $position
+sub get_data {
+	my $position = shift;
+	my ($path,$sha) = $DBH->selectrow_array("SELECT path, sha1 FROM wallpaper WHERE position = ?",undef,$position);
+	if ($path and !$sha) {
+		if (! -e $WP_PATH . $path) {
+			$DBH->do("DELETE FROM wallpaper WHERE position = ?", undef, $position);
+		}
+		else {
+			$sha = $SHA->addfile($WP_PATH . $path,"b")->hexdigest;
+			$sha or die "could not get sha of $path";
+			unless ($DBH->do("UPDATE OR FAIL wallpaper SET sha1 = ? WHERE position = ?",undef,$sha,$position)) {
+				die "failed to update sha1 value. maybe duplicate? (not implemented yet)";
+			}
 		}
 		$DBH->commit();
 	}
-	return $WP_PATH . $data[0] if $data[0];
+	return ($path , $sha) if $path;
 	return undef;
-}
-
-sub current_position {
-	return $CURRENT;
 }
 
 #$sha
@@ -61,6 +67,15 @@ sub current_position {
 sub delete {
 	my $sha = shift;
 	$DBH->do("DELETE FROM wallpaper WHERE sha1 = ?", undef, $sha);
+	$DBH->commit();
+}
+
+#$sha
+#removes the position of $sha
+sub remove_position {
+	my ($sha) = shift;
+	my $position = $DBH->selectrow_array("SELECT position FROM wallpaper WHERE sha1 = ?",undef,$sha);
+	$DBH->do("UPDATE wallpaper SET position = NULL WHERE sha1 = ?", undef, $sha);
 	$DBH->commit();
 }
 
@@ -76,7 +91,7 @@ sub set_fav {
 #increases vote amount of $sha by $vote
 sub vote {
 	my ($sha,$vote) = @_;
-	$DBH->do("UPDATE OR FAIL wallpaper SET vote = vote + ? WHERE sha1 = ?" , undef , $vote,$CURRENT)
+	$DBH->do("UPDATE OR FAIL wallpaper SET vote = vote + ? WHERE sha1 = ?" , undef , $vote,$sha)
 		or die 'failed to update vote';
 	$DBH->commit();
 }
@@ -84,40 +99,15 @@ sub vote {
 #$sha
 #sets nsfw for $sha
 sub set_nsfw {
-	$DBH->do("UPDATE wallpaper SET nsfw = 1 WHERE position = ?", undef, $CURRENT);
+	my $sha = shift;
+	$DBH->do("UPDATE wallpaper SET nsfw = 1 WHERE position = ?", undef, $sha);
 	$DBH->commit();
 }
 
-sub forward {
-	my $mv = shift;
-	my $max = $DBH->selectrow_array("SELECT MAX(position) FROM wallpaper");
-	$CURRENT += $mv // 1;
-	if ($CURRENT < 1) {
-		$CURRENT = 1;
-		return;
-	}
-	if ($CURRENT > $max) {
-		$CURRENT = $max;
-		return;
-	}
-	my $cur = current();
-	while (!$cur) {
-		$CURRENT += $mv<=>0; #vorzeichen von $mv;
-			if ($CURRENT < 1  || $CURRENT > $max) {
-				$CURRENT = 1;
-				return;
-			}
-			if ($CURRENT > $max) {
-				$CURRENT = $max;
-				return;
-			}
-		$cur = current();
-	}
-	return $cur;
-}
-
-sub backward {
-	return forward(  (- shift) // -1 );
+# -> $max_pos
+#returns the $max_pos
+sub max_pos {
+	return $DBH->selectrow_array("SELECT MAX(position) FROM wallpaper");
 }
 
 sub get_fav_list {
@@ -220,18 +210,6 @@ sub update_file {
 	$SHAS->{$sha}->{path} = $path;
 	$PATHS->{$path}->{sha1} = $sha;
 	unlink($opath);
-}
-
-sub set_current_res {
-	my ($x,$y) = @_;
-	unless ($DBH->do("UPDATE OR FAIL wallpaper SET resx = ? , resy = ? WHERE position = ?" , undef , $x, $y, $CURRENT)) {
-		die "failed to update resolution";
-	}
-	$DBH->commit();
-}
-
-sub get_folder_vote_list {
-	return $DBH->selectall_arrayref("SELECT path, vote FROM wallpaper WHERE vote IS NOT NULL AND vote != 0");
 }
 
 1;

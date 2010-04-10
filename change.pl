@@ -10,11 +10,13 @@ use WPConfig;
 use Cwd qw(abs_path);
 use File::Copy;
 
+
 my $INI = WPConfig::load() or die "could not load config";
 
-#say "loading wallpaper list";
-#WallpaperList::init($INI->{db_path},$INI->{wp_path},$INI->{current},$INI->{check_doubles});
+say "loading wallpaper list";
+WallpaperList::init($INI->{db_path},$INI->{wp_path},$INI->{check_doubles});
 
+@ARGV or usage();
 foreach (@ARGV) {
 	when(undef) {usage()};
 	when('delete') { delete_wp() };
@@ -26,8 +28,6 @@ foreach (@ARGV) {
 	when('tpu') { tpu() };
 	when('teu') { teu() };
 	when('precompile') { precompile_wallpapers() };
-	when('next') { next_wp() };
-	when('prev') { prev_wp() };
 	when(/-?\d+/) {change_wp($_)};
 	default {usage()};
 }
@@ -54,13 +54,13 @@ sub set_nsfw {
 }
 
 sub delete_wp {
-	my ($sha,$path) = WallpaperList::get_data($INI->{position});
-	mkdir folder('trash') or die 'could not create folder'.folder('trash').": $!" unless( -d folder('trash'));
-	say "moving ". $path ." to " . folder('trash');
-	open my $f, ">>", folder('trash') . '_map.txt' or die "could not open ". folder('trash') . '_map.txt:' . $!;
-	print $f $INI->{current} . "=" . $path;
+	my ($path,$sha) = WallpaperList::get_data($INI->{position});
+	mkdir $INI->{trash_path} or die 'could not create folder'.$INI->{trash_path}.": $!" unless( -d $INI->{trash_path});
+	say "moving ". $path ." to " . $INI->{trash_path};
+	open my $f, ">>", $INI->{trash_path} . '_map.txt' or die "could not open ". $INI->{trash_path} . '_map.txt:' . $!;
+	print $f $INI->{current} . "=" . $path . "\n";
 	close $f;
-	move(folder('wp') . $path,folder('trash') . $INI->{current});
+	move($INI->{wp_path} . $path,$INI->{trash_path} . $INI->{current});
 	WallpaperList::delete($INI->{current});
 }
 
@@ -71,21 +71,27 @@ sub vote {
 
 sub change_wp {
 	my $mv = shift;
-	my ($sha,$rel_path) = WallpaperList::get_data($INI->{position}+$mv);
-	my $path = folder('wp').$rel_path;
-	die "could not get data" unless $sha;
-	mkdir folder('gen') or die 'could not create folder'.folder('gen').": $!" unless -e folder('gen');
+	my $pos = $INI->{position} + $mv;
+	my $max_pos = WallpaperList::max_pos();
+	my ($rel_path,$sha);
+	while (1) {
+		die "invalid position $pos" if ($pos < 1 or $pos > $max_pos);
+		($rel_path,$sha) = WallpaperList::get_data($pos);
+		last if $sha;
+		$pos += $mv <=> 0;
+	}
+	my $path = $INI->{wp_path} . $rel_path;
+	mkdir $INI->{gen_path} or die 'could not create folder'.$INI->{gen_path} .": $!" unless -e $INI->{gen_path};
 	say "selecting file: \n$path";
-	if (-e folder('gen') . $sha ) {
+	if (-e $INI->{gen_path}  . $sha ) {
 		say "using pregenerated bitmap";
-		set_wallpaper(folder('gen') . $sha);
+		set_wallpaper($INI->{gen_path}  . $sha);
 	}
 	else {
 		unless (-e $path) {
 			WallpaperList::delete($sha);
 			return;
 		}
-		
 		load_wallpaper($path);
 		if (!check_wallpaper()) {
 			WallpaperList::remove_position($sha);
@@ -93,10 +99,12 @@ sub change_wp {
 		}
 		adjust_wallpaper($rel_path);
 		say "saving image";
-		Wallpaper::saveAs(folder('gen').$sha, 'bmp');
-		set_wallpaper($sha);
+		Wallpaper::saveAs($INI->{gen_path} .$sha, 'bmp');
+		set_wallpaper($INI->{gen_path} . $sha);
 	}
-	
+	$INI->{current} = $sha;
+	$INI->{position} = $pos;
+	WPConfig::save();
 }
 
 sub precompile_wallpapers {
@@ -190,14 +198,14 @@ sub adjust_wallpaper {
 }
 
 sub set_wallpaper {
+	my $wp = shift;
 	say "calling api to update wallpaper";
-	Wallpaper::setWallpaper(folder('gen') . shift);
+	Wallpaper::setWallpaper($wp);
 	return 1;
 }
 
 sub getfav {
-	use File::Copy;
-	my $fav_dir = folders('fav');
+	my $fav_dir = $INI->{fav_path} ;
 	
 	say "moving favourites to $fav_dir";
 	mkdir $fav_dir or die 'could not create folder'.$fav_dir.": $!" unless -e $fav_dir;
@@ -205,19 +213,21 @@ sub getfav {
 	
 	foreach (@$fav) {
 		say $_;
-		copy(folder('wp').$_,$fav_dir);
+		copy($INI->{wp_path} . $_,$fav_dir);
 	}
 }
 
 sub tpu {
 	require UploadTools;
-	my ($sha,$path) = WallpaperList::get_data($INI->{position});
-	UploadTools::tpu(folder('wp') . $path);
+	my ($path,$sha) = WallpaperList::get_data($INI->{position});
+	$path = $INI->{wp_path} . $path;
+	UploadTools::tpu($path);
 }
 
 sub teu {
 	require UploadTools;
-	my ($sha,$path) = WallpaperList::get_data($INI->{position});
-	UploadTools::teu(folder('wp') . $path);
+	my ($path,$sha) = WallpaperList::get_data($INI->{position});
+	$path = $INI->{wp_path} . $path;
+	UploadTools::teu($path);
 }
 

@@ -15,12 +15,12 @@ my %def_cfg;
 sub readINI {
 	my ($file) = shift;
 	croak 'first parameter needs to be filename' unless defined $file;
-	croak "could not find $file" return unless -e $file;
+	croak "could not find $file" unless -e $file;
 	my $data = shift // {};
 	open my $f , $file or die "error opening $file: $!";
 	while (my $line = <$f>) {
 		#ignoring comments and empty lines
-		next if $line =~ /^ \s* ( [ \; | \# ] .* ) $/x;
+		next if $line =~ /^ \s* ( [ \; | \# ] .* )? $/x;
 		next if length $line == 0;
 		
 		#parting values and stripping whitespace
@@ -50,8 +50,9 @@ sub save {
 	my $config = shift // $CFG;
 	open my $f, '>' , $CFG_PATH or die "could not open $CFG_PATH: $!";
 	print $f join( "\n", 
-		map {$_ . '=' . $config->{$_} if ($config->{$_} ne $def_cfg{$_})} 
-			keys %$config; 
+		map {$_ . '=' . $config->{$_} } 
+			grep { defined $def_cfg{$_} and $config->{$_} ne $def_cfg{$_} }
+				keys %$config );
 	close $f;
 }
 
