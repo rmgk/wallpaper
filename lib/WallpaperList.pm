@@ -111,7 +111,7 @@ sub max_pos {
 }
 
 sub get_fav_list {
-	return $DBH->selectcol_arrayref("SELECT path FROM wallpaper WHERE fav = 1");
+	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE fav = 1");
 }
 
 sub determine_order {

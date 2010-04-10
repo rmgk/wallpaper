@@ -23,10 +23,11 @@ foreach (@ARGV) {
 	when('fav') { set_fav() };
 	when('getfav') { getfav() };
 	when('nsfw') { set_nsfw() };
+	when('rand') { rand_wp() };
+	when('teu') { teu() };
+	when('tpu') { tpu() };
 	when('voteup') {vote(1) };
 	when('votedown') {vote(-1) };
-	when('tpu') { tpu() };
-	when('teu') { teu() };
 	when('precompile') { precompile_wallpapers() };
 	when(/-?\d+/) {change_wp($_)};
 	default {usage()};
@@ -38,10 +39,10 @@ sub usage {
 	say "\tfav - set favourite flag";
 	say "\tgetfav - move flagged with fav to fav_path";
 	say "\tnsfw - set the nsfw flag";
+	say "\tteu - search with tineye";
+	say "\ttpu - upload to tinypic and open link";
 	say "\tvoteup - increse vote value by 1 and change to next";
 	say "\tvotedown - decrese vote value by 1 and change to next";
-	say "\ttpu - upload to tinypic and open link";
-	say "\tteu - search with tineye";
 	say "\t'number' - change wallpaper by that amount";
 }
 
@@ -78,16 +79,27 @@ sub change_wp {
 		die "invalid position $pos" if ($pos < 1 or $pos > $max_pos);
 		($rel_path,$sha) = WallpaperList::get_data($pos);
 		last if $sha;
+		return unless $mv;
 		$pos += $mv <=> 0;
 	}
+
+	
+	unless (gen_wp($rel_path,$sha)) {
+		change_wp($mv <=> 0);
+	}
+
+	set_wallpaper($sha);
+	$INI->{current} = $sha;
+	$INI->{position} = $pos;
+	WPConfig::save();
+}
+
+sub gen_wp {
+	my ($rel_path,$sha) = @_;
 	my $path = $INI->{wp_path} . $rel_path;
 	mkdir $INI->{gen_path} or die 'could not create folder'.$INI->{gen_path} .": $!" unless -e $INI->{gen_path};
-	say "selecting file: \n$path";
-	if (-e $INI->{gen_path}  . $sha ) {
-		say "using pregenerated bitmap";
-		set_wallpaper($INI->{gen_path}  . $sha);
-	}
-	else {
+	say "processing file: \n$path";
+	if (! -e $INI->{gen_path}  . $sha ) {
 		unless (-e $path) {
 			WallpaperList::delete($sha);
 			return;
@@ -95,16 +107,13 @@ sub change_wp {
 		load_wallpaper($path);
 		if (!check_wallpaper()) {
 			WallpaperList::remove_position($sha);
-			return change_wp($mv);
+			return;
 		}
 		adjust_wallpaper($rel_path);
-		say "saving image";
+		say "saving $sha";
 		Wallpaper::saveAs($INI->{gen_path} .$sha, 'bmp');
-		set_wallpaper($INI->{gen_path} . $sha);
 	}
-	$INI->{current} = $sha;
-	$INI->{position} = $pos;
-	WPConfig::save();
+	return 1;
 }
 
 sub precompile_wallpapers {
@@ -113,17 +122,6 @@ sub precompile_wallpapers {
 	while($path && $count--) {
 		precompile_wallpaper($path);
 		$path = WallpaperList::forward(1);
-	}
-}
-
-sub precompile_wallpaper {
-	my $path = shift;
-	return 0 if -e $path . '.pcw';
-	say "precompiling $path";
-	load_wallpaper($path);
-	if (check_wallpaper()) {
-		adjust_wallpaper($path);
-		Wallpaper::saveAs($path . '.pcw','bmp');
 	}
 }
 
@@ -200,7 +198,7 @@ sub adjust_wallpaper {
 sub set_wallpaper {
 	my $wp = shift;
 	say "calling api to update wallpaper";
-	Wallpaper::setWallpaper($wp);
+	Wallpaper::setWallpaper($INI->{gen_path} . $wp);
 	return 1;
 }
 
@@ -212,9 +210,18 @@ sub getfav {
 	my $fav = WallpaperList::get_fav_list();
 	
 	foreach (@$fav) {
-		say $_;
-		copy($INI->{wp_path} . $_,$fav_dir);
+		say $_->[0];
+		copy($INI->{wp_path} . $_->[0],$fav_dir);
 	}
+}
+
+sub rand_wp {
+	my $fav = WallpaperList::get_fav_list();
+	my $sel = $fav->[int rand @$fav];
+	gen_wp($sel->[0],$sel->[1]);
+	set_wallpaper($sel->[1]);
+	$INI->{current} = $sel->[1];
+	WPConfig::save();
 }
 
 sub tpu {
