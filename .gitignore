@@ -1,8 +1,9 @@
 favourites
-lame
-wallpaper.bmp
+trash
 wp
-current.txt
+generated
+config.ini
+*.db
 *.jpg
 *.bmp
 *.png
