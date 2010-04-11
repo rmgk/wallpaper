@@ -24,7 +24,7 @@ sub init {
 	$WP_PATH = shift or croak 'wp_path not defined';
 	$CHECK_DOUBLES = shift // 0;
 	#say "Connect to database: " . $DB_PATH;
-	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 0,PrintError => 1});
+	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 1,PrintError => 1});
 
 	if($DBH->selectrow_array("SELECT name FROM sqlite_master WHERE type='table' AND name='wallpaper'")) {
 		return 1;
