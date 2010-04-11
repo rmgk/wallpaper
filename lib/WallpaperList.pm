@@ -106,7 +106,7 @@ sub vote {
 #sets nsfw for $sha
 sub set_nsfw {
 	my $sha = shift;
-	$DBH->do("UPDATE wallpaper SET nsfw = 1 WHERE position = ?", undef, $sha);
+	$DBH->do("UPDATE wallpaper SET nsfw = 1 WHERE sha1 = ?", undef, $sha);
 	$DBH->commit();
 }
 
