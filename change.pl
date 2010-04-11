@@ -140,17 +140,19 @@ sub gen_wp {
 sub cleanup_generated_wallpapers {
 	say "Cleanup";
 	opendir(my $dh, $INI->{gen_path}) || die "can't opendir ".$INI->{gen_path}.": $!";
-    while (my $file = readdir($dh)) {
-		next unless -f $INI->{gen_path}.$file;
+	my @dir = grep {-f $INI->{gen_path}.$_ and $_ =~ /^\w+$/ and $_ ne $INI->{current}} readdir($dh);
+	closedir $dh;
+    foreach my $file (@dir) {
 		my $pos = WallpaperList::get_pos($file);
 		my $lower = $INI->{position} - $INI->{pregen_amount};
 		my $upper = $INI->{position} + $INI->{pregen_amount};
 		unlink $INI->{gen_path}.$file if !$pos or $pos < $lower or $pos > $upper;
 	}
-    closedir $dh;
 }
 
 sub pregenerate_wallpapers {
+	lock_check('pregen') or return;
+	lock_set('pregen');
 	say "Pregenerating";
  	my $count = $INI->{pregen_amount};
 	my $pos = $INI->{position};
@@ -159,6 +161,7 @@ sub pregenerate_wallpapers {
 		next unless $path and $sha;
 		gen_wp($path,$sha);
 	}
+	lock_release('pregen');
 }
 
 sub load_wallpaper {
@@ -171,7 +174,7 @@ sub check_wallpaper {
 	my ($rx,$ry) = split(/\D+/,$INI->{min_resulution});
 	return 0 if (!defined $iw or !defined $ih);
 	my $iz = $iw/$ih;
-	say "\Dimensions: $iw x $ih ($iz)";
+	say "\tDimensions: $iw x $ih ($iz)";
 	if ($iw < $rx or $ih < $ry) {
 		say "image to small";
 		return 0
@@ -262,3 +265,19 @@ sub teu {
 	UploadTools::teu($path);
 }
 
+sub lock_check {
+	my $lock = shift;
+	return !-e $lock;
+}
+
+sub lock_set {
+	my $lock = shift;
+	my $r = open my $f, '>', $lock;
+	close $f;
+	return $r;
+}
+
+sub lock_release {
+	my $lock = shift;
+	return unlink $lock;
+}
