@@ -27,7 +27,7 @@ foreach (@ARGV) {
 	when('tpu') { tpu() };
 	when('voteup') {vote(1) };
 	when('votedown') {vote(-1) };
-	when('precompile') { precompile_wallpapers() };
+	when('pregen') { pregenerate_wallpapers() };
 	when(/-?\d+/) {change_wp($_)};
 	default {usage()};
 }
@@ -135,12 +135,30 @@ sub gen_wp {
 	return 1;
 }
 
-sub precompile_wallpapers {
-	my $count = shift // -1;
-	my $path = WallpaperList::forward(1);
-	while($path && $count--) {
-		precompile_wallpaper($path);
-		$path = WallpaperList::forward(1);
+sub pregenerate_wallpapers {
+	my $pct = $INI->{pregenerate_to} // $INI->{position};
+	my $pcf = $INI->{pregenerate_from} // $INI->{position};
+ 	my $amount = $INI->{pregenerate_amount} // 0;
+	if (($pct - $INI->{position}) < $amount) {
+		my $pos = $pct;
+		$pct = $INI->{position} + $amount;
+		say "Pregenerate from $pos to $pct";
+		$INI->{pregenerate_to} = $pct;
+		WPConfig::save();
+		
+		while(++$pcf <= ($INI->{position} - $amount)) {
+			my ($path,$sha) = WallpaperList::get_data($pcf);
+			next unless $sha;
+			unlink($INI->{gen_path} . $sha);
+		}
+		
+		$INI->{pregenerate_from} = $pcf;
+		WPConfig::save();
+		while(++$pos <= $pct) {
+			my ($path,$sha) = WallpaperList::get_data($pos);
+			next unless $path and $sha;
+			gen_wp($path,$sha);
+		}
 	}
 }
 
