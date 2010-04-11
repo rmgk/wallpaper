@@ -51,7 +51,7 @@ sub save {
 	open my $f, '>' , $CFG_PATH or die "could not open $CFG_PATH: $!";
 	print $f join( "\n", 
 		map {$_ . '=' . $config->{$_} } 
-			grep { defined $def_cfg{$_} and $config->{$_} ne $def_cfg{$_} }
+			grep { $config->{$_} ne ($def_cfg{$_}//'') }
 				keys %$config );
 	close $f;
 }
