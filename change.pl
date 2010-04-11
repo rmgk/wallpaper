@@ -32,6 +32,8 @@ foreach (@ARGV) {
 	default {usage()};
 }
 
+cleanup_generated_wallpapers();
+
 sub usage {
 	say "\nThe following commandline options are available:\n";
 	say "\tdelete - move to trash_path; removes from db";
@@ -74,7 +76,7 @@ sub vote {
 
 sub rand_wp {
 	say "Select Random";
-	my $fav = WallpaperList::get_list($INI->{rand_criteria});
+	my $fav = WallpaperList::get_list('path IS NOT NULL AND sha1 IS NOT NULL AND (' . $INI->{rand_criteria} . ')');
 	warn "nothing matching criteria" and return unless @$fav;
 	my $sel = $fav->[int rand @$fav];
 	say "Selected " . $sel->[0] ." from " . @$fav; 
@@ -135,30 +137,27 @@ sub gen_wp {
 	return 1;
 }
 
+sub cleanup_generated_wallpapers {
+	say "Cleanup";
+	opendir(my $dh, $INI->{gen_path}) || die "can't opendir ".$INI->{gen_path}.": $!";
+    while (my $file = readdir($dh)) {
+		next unless -f $INI->{gen_path}.$file;
+		my $pos = WallpaperList::get_pos($file);
+		my $lower = $INI->{position} - $INI->{pregen_amount};
+		my $upper = $INI->{position} + $INI->{pregen_amount};
+		unlink $INI->{gen_path}.$file if !$pos or $pos < $lower or $pos > $upper;
+	}
+    closedir $dh;
+}
+
 sub pregenerate_wallpapers {
-	my $pct = $INI->{pregenerate_to} // $INI->{position};
-	my $pcf = $INI->{pregenerate_from} // $INI->{position};
- 	my $amount = $INI->{pregenerate_amount} // 0;
-	if (($pct - $INI->{position}) < $amount) {
-		my $pos = $pct;
-		$pct = $INI->{position} + $amount;
-		say "Pregenerate from $pos to $pct";
-		$INI->{pregenerate_to} = $pct;
-		WPConfig::save();
-		
-		while(++$pcf <= ($INI->{position} - $amount)) {
-			my ($path,$sha) = WallpaperList::get_data($pcf);
-			next unless $sha;
-			unlink($INI->{gen_path} . $sha);
-		}
-		
-		$INI->{pregenerate_from} = $pcf;
-		WPConfig::save();
-		while(++$pos <= $pct) {
-			my ($path,$sha) = WallpaperList::get_data($pos);
-			next unless $path and $sha;
-			gen_wp($path,$sha);
-		}
+	say "Pregenerating";
+ 	my $count = $INI->{pregen_amount};
+	my $pos = $INI->{position};
+	while($count--) {
+		my ($path,$sha) = WallpaperList::get_data(++$pos);
+		next unless $path and $sha;
+		gen_wp($path,$sha);
 	}
 }
 
@@ -172,7 +171,7 @@ sub check_wallpaper {
 	my ($rx,$ry) = split(/\D+/,$INI->{min_resulution});
 	return 0 if (!defined $iw or !defined $ih);
 	my $iz = $iw/$ih;
-	say "\tDIMENSIONS: $iw x $ih ($iz)";
+	say "\Dimensions: $iw x $ih ($iz)";
 	if ($iw < $rx or $ih < $ry) {
 		say "image to small";
 		return 0
@@ -209,8 +208,7 @@ sub adjust_wallpaper {
 		Wallpaper::extendBlackNorth(split(/\D+/,$INI->{extend_black}));
 	}
 	
-	if ($INI->{annotate} ne "none") { 
-		say "\tAnnotating (".$INI->{annotate}.')';
+	if ($INI->{annotate} ne "none") {
 		$file =~ s'\\'/'g;
 		if ($INI->{annotate} eq "path_multiline") {
 			my @filename = reverse split m'/', $file;

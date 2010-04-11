@@ -65,7 +65,14 @@ sub get_data {
 #returns the $path for $sha
 sub get_path {
 	my $sha = shift;
-	$DBH->selectrow_array("SELECT path FROM wallpaper WHERE sha1 = ?",undef,$sha)
+	return $DBH->selectrow_array("SELECT path FROM wallpaper WHERE sha1 = ?",undef,$sha)
+}
+
+#$sha -> $pos
+#returns the $pos for $sha
+sub get_pos {
+	my $sha = shift;
+	return $DBH->selectrow_array("SELECT position FROM wallpaper WHERE sha1 = ?",undef,$sha)
 }
 
 #$sha
@@ -120,7 +127,7 @@ sub max_pos {
 #takes a sql string of criteria and returns a list of paths and shas
 sub get_list {
 	my $criteria = shift;
-	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE path IS NOT NULL AND sha1 IS NOT NULL AND ($criteria)");
+	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE ($criteria)");
 }
 
 sub determine_order {
