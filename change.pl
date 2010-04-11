@@ -228,14 +228,16 @@ sub rand_wp {
 
 sub tpu {
 	require UploadTools;
-	my ($path,$sha) = WallpaperList::get_data($INI->{position});
+	my $sha = $INI->{current};
+	my $path = WallpaperList::get_path($sha);
 	$path = $INI->{wp_path} . $path;
 	UploadTools::tpu($path);
 }
 
 sub teu {
 	require UploadTools;
-	my ($path,$sha) = WallpaperList::get_data($INI->{position});
+	my $sha = $INI->{current};
+	my $path = WallpaperList::get_path($sha);
 	$path = $INI->{wp_path} . $path;
 	UploadTools::teu($path);
 }

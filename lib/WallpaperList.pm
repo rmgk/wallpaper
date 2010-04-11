@@ -61,6 +61,12 @@ sub get_data {
 	return ($path , $sha) if $path;
 	return undef;
 }
+#$sha -> $path
+#returns the $path for $sha
+sub get_path {
+	my $sha = shift;
+	$DBH->selectrow_array("SELECT path FROM wallpaper WHERE sha1 = ?",undef,$sha)
+}
 
 #$sha
 #deletes row of $sha from table
