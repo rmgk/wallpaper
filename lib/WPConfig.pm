@@ -10,7 +10,7 @@ my $DEF_CFG_PATH = 'DEFAULT_config.ini';
 our $CFG;
 my %def_cfg;
 
-#$filename, [\%data] -> \%data
+#$filename, \%data? -> \%data
 #reads from $filename into \%data
 sub readINI {
 	my ($file) = shift;
@@ -44,7 +44,7 @@ sub load {
 	return $CFG;
 }
 
-# [\%config]
+# \%config?
 # saves \%config or $CFG to $CFG_PATH
 sub save {
 	my $config = shift // $CFG;

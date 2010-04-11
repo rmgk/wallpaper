@@ -100,24 +100,12 @@ sub sumArray {
 	}
 	
 	if ($count > (@$a/20)) {
-		say "using averaged main border color";
+		say "\tuse average MAIN border color";
 		return $most->{$m[0]}->{$m[1]}->{$m[2]}->[0]/$count,$most->{$m[0]}->{$m[1]}->{$m[2]}->[1]/$count,$most->{$m[0]}->{$m[1]}->{$m[2]}->[2]/$count;
 	}
 	else {
-		say "using general average border color";
-		
+		say "\tuse average GENERAL border color";
 		my ($r,$g,$b) = ($std[0]/@$a,$std[1]/@$a,$std[2]/@$a);
-		# my $avg = ($r+$b+$g) / 3;
-		# if ((abs($r-$avg)<30) and (abs($g-$avg)<30) and (abs($b-$avg)<30)) {
-			# if ($avg < 128) {
-				# say "meh its grey brown whatever .. lets just use black";
-				# return (0,0,0);
-			# }
-			# else {
-				# say "meh its grey brown whatever .. lets just use white";
-				# return (255,255,255);
-			# }
-		# }
 		return ($r,$g,$b);
 	}
 }
@@ -207,7 +195,7 @@ sub saveAs {
 	$iM->Strip();
 	
 	if ($png_hack) {
-		say "using png hack";
+		say "(using png hack)";
 		$iM->Set(magick => "jpg");
 		my $temp = $iM->ImageToBlob();
 		@$iM = ();

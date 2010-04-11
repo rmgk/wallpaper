@@ -23,7 +23,7 @@ sub init {
 	$DB_PATH = shift or croak 'db_path not defined';
 	$WP_PATH = shift or croak 'wp_path not defined';
 	$CHECK_DOUBLES = shift // 0;
-	say "connecting to database: " . $DB_PATH;
+	#say "Connect to database: " . $DB_PATH;
 	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 0,PrintError => 1});
 
 	if($DBH->selectrow_array("SELECT name FROM sqlite_master WHERE type='table' AND name='wallpaper'")) {
@@ -120,7 +120,7 @@ sub max_pos {
 #takes a sql string of criteria and returns a list of paths and shas
 sub get_list {
 	my $criteria = shift;
-	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE ($criteria)");
+	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE path IS NOT NULL AND sha1 IS NOT NULL AND ($criteria)");
 }
 
 sub determine_order {

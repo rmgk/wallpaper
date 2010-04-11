@@ -11,9 +11,8 @@ use Cwd qw(abs_path);
 use File::Copy;
 
 
+say "Initialise";
 my $INI = WPConfig::load() or die "could not load config";
-
-say "loading wallpaper list";
 WallpaperList::init($INI->{db_path},$INI->{wp_path},$INI->{check_doubles});
 
 @ARGV or usage();
@@ -47,17 +46,19 @@ sub usage {
 }
 
 sub set_fav {
+	say "Fav: " . $INI->{current};
 	WallpaperList::set_fav($INI->{current});
 }
 
 sub set_nsfw {
+	say "NSFW: " . $INI->{current};
 	WallpaperList::set_nsfw($INI->{current});
 }
 
 sub delete_wp {
 	my ($path,$sha) = WallpaperList::get_data($INI->{position});
 	mkdir $INI->{trash_path} or die 'could not create folder'.$INI->{trash_path}.": $!" unless( -d $INI->{trash_path});
-	say "moving ". $path ." to " . $INI->{trash_path};
+	say "Move: ". $path ." To " . $INI->{trash_path};
 	open my $f, ">>", $INI->{trash_path} . '_map.txt' or die "could not open ". $INI->{trash_path} . '_map.txt:' . $!;
 	print $f $INI->{current} . "=" . $path . "\n";
 	close $f;
@@ -67,7 +68,21 @@ sub delete_wp {
 
 sub vote {
 	my $vote = shift;
+	say "Vote ($vote): " . $INI->{current};
 	WallpaperList::vote($INI->{current},$vote);
+}
+
+sub rand_wp {
+	say "Select Random";
+	my $fav = WallpaperList::get_list($INI->{rand_criteria});
+	warn "nothing matching criteria" and return unless @$fav;
+	my $sel = $fav->[int rand @$fav];
+	say "Selected " . $sel->[0] ." from " . @$fav; 
+	gen_wp($sel->[0],$sel->[1]) or return;
+	set_wallpaper($sel->[1]);
+	say "SAVE CONFIG";
+	$INI->{current} = $sel->[1];
+	WPConfig::save();
 }
 
 sub change_wp {
@@ -76,19 +91,21 @@ sub change_wp {
 	my $max_pos = WallpaperList::max_pos();
 	my ($rel_path,$sha);
 	while (1) {
-		die "invalid position $pos" if ($pos < 1 or $pos > $max_pos);
+		warn "invalid position $pos" and return if ($pos < 1 or $pos > $max_pos);
 		($rel_path,$sha) = WallpaperList::get_data($pos);
 		last if $sha;
 		return unless $mv;
 		$pos += $mv <=> 0;
 	}
 
+	say "Change To: $rel_path ($pos)";
 	
 	unless (gen_wp($rel_path,$sha)) {
 		change_wp($mv <=> 0);
 	}
 
 	set_wallpaper($sha);
+	say "Save Config";
 	$INI->{current} = $sha;
 	$INI->{position} = $pos;
 	WPConfig::save();
@@ -98,19 +115,21 @@ sub gen_wp {
 	my ($rel_path,$sha) = @_;
 	my $path = $INI->{wp_path} . $rel_path;
 	mkdir $INI->{gen_path} or die 'could not create folder'.$INI->{gen_path} .": $!" unless -e $INI->{gen_path};
-	say "processing file: \n$path";
 	if (! -e $INI->{gen_path}  . $sha ) {
+		say "Processing: \n\t$rel_path";
 		unless (-e $path) {
+			say "\t$path does not exist, deleting from db" ;
 			WallpaperList::delete($sha);
 			return;
 		}
 		load_wallpaper($path);
 		if (!check_wallpaper()) {
+			say "\twallpaper failed checks, removing from rotation";
 			WallpaperList::remove_position($sha);
 			return;
 		}
 		adjust_wallpaper($rel_path);
-		say "saving $sha";
+		say "\tSave As: $sha";
 		Wallpaper::saveAs($INI->{gen_path} .$sha, 'bmp');
 	}
 	return 1;
@@ -127,8 +146,6 @@ sub precompile_wallpapers {
 
 sub load_wallpaper {
 	my $file = shift; 
-	say "opening image";
-	
 	Wallpaper::openImage($file);
 }
 
@@ -137,7 +154,7 @@ sub check_wallpaper {
 	my ($rx,$ry) = split(/\D+/,$INI->{min_resulution});
 	return 0 if (!defined $iw or !defined $ih);
 	my $iz = $iw/$ih;
-	say "image dimensions: $iw x $ih ($iz)";
+	say "\tDIMENSIONS: $iw x $ih ($iz)";
 	if ($iw < $rx or $ih < $ry) {
 		say "image to small";
 		return 0
@@ -156,18 +173,15 @@ sub adjust_wallpaper {
 	my ($rx,$ry) = split(/\D+/,$INI->{resulution});
 	my $rz = $rx/$ry;
 
-	say "screen resolution: $rx x $ry ($rz)";
-
 	my $abw = 1 + $INI->{max_deformation};
 
 	if (($iz < $rz * $abw) && ($iz > $rz / $abw)) {
-		say sprintf ("deformation in range %.2f < %.2f < %.2f - resizing to full screen" , $rz / $abw , $iz , $rz*$abw);
+		say sprintf ("\tdeformation IN range (%.2f < %.2f < %.2f) - full screen" , $rz / $abw , $iz , $rz*$abw);
 		Wallpaper::resize($rx,$ry);
 	}
 	else {
-		say sprintf ("deformation out of range %.2f < %.2f < %.2f - resizing while keeping ratio",$rz /$abw , $iz , $rz*$abw);
+		say sprintf ("\tdeformation OUT of range (%.2f < %.2f < %.2f) - keeping ratio",$rz /$abw , $iz , $rz*$abw);
 		Wallpaper::resizeKeep($rx,$ry);
-		say "extending image with background color";
 		Wallpaper::extend($rx,$ry,$INI->{taskbar_offset});
 	}
 
@@ -178,7 +192,7 @@ sub adjust_wallpaper {
 	}
 	
 	if ($INI->{annotate} ne "none") { 
-		say "annotating";
+		say "\tAnnotating (".$INI->{annotate}.')';
 		$file =~ s'\\'/'g;
 		if ($INI->{annotate} eq "path_multiline") {
 			my @filename = reverse split m'/', $file;
@@ -198,7 +212,7 @@ sub adjust_wallpaper {
 
 sub set_wallpaper {
 	my $wp = shift;
-	say "calling api to update wallpaper";
+	say "Call API to set wallpaper $wp";
 	Wallpaper::setWallpaper($INI->{gen_path} . $wp);
 	return 1;
 }
@@ -206,7 +220,7 @@ sub set_wallpaper {
 sub getfav {
 	my $fav_dir = $INI->{fav_path} ;
 	
-	say "moving favourites to $fav_dir";
+	say "MOVE favourites to $fav_dir";
 	mkdir $fav_dir or die 'could not create folder'.$fav_dir.": $!" unless -e $fav_dir;
 	my $fav = WallpaperList::get_list('fav = 1');
 	
@@ -214,16 +228,6 @@ sub getfav {
 		say $_->[0];
 		copy($INI->{wp_path} . $_->[0],$fav_dir);
 	}
-}
-
-sub rand_wp {
-	say $INI->{rand_criteria};
-	my $fav = WallpaperList::get_list($INI->{rand_criteria});
-	my $sel = $fav->[int rand @$fav];
-	gen_wp($sel->[0],$sel->[1]);
-	set_wallpaper($sel->[1]);
-	$INI->{current} = $sel->[1];
-	WPConfig::save();
 }
 
 sub tpu {
