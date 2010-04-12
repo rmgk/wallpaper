@@ -14,30 +14,23 @@ my $DB_PATH;
 my $WP_PATH;
 my $DBH;
 my $STH_INSERT;
-my $STH_UPDATE;
 my $PATHS;
-my $SHAS;
-my $CHECK_DOUBLES;
 
+#$db_path, $wp_path
+#initialises the database creating tables if necessaray
 sub init {
 	$DB_PATH = shift or croak 'db_path not defined';
 	$WP_PATH = shift or croak 'wp_path not defined';
-	$CHECK_DOUBLES = shift // 0;
-	#say "Connect to database: " . $DB_PATH;
 	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 1,PrintError => 1});
 
 	if($DBH->selectrow_array("SELECT name FROM sqlite_master WHERE type='table' AND name='wallpaper'")) {
 		return 1;
 	}
 	
-	say "creating wallpapers table";
+	say "Creating Wallpaper Table";
 	$DBH->do("CREATE TABLE wallpaper (position INT UNIQUE, sha1 CHAR UNIQUE, path CHAR UNIQUE, vote INT, fav INT, nsfw INT)") 
 		or die "could not create table";
-	
-	say "adding ". $WP_PATH ." to database";
-	add_folder($WP_PATH);
-	say "creating random order";
-	determine_order();
+	return 1;
 }
 
 #$position -> ($path,$sha)
@@ -58,7 +51,7 @@ sub get_data {
 		}
 		$DBH->commit();
 	}
-	return ($path , $sha) if $path;
+	return ($path , $sha) if $path and $sha;
 	return undef;
 }
 #$sha -> $path
@@ -88,7 +81,7 @@ sub delete {
 sub remove_position {
 	my ($sha) = shift;
 	my $position = $DBH->selectrow_array("SELECT position FROM wallpaper WHERE sha1 = ?",undef,$sha);
-	$DBH->do("UPDATE wallpaper SET position = NULL WHERE sha1 = ?", undef, $sha);
+	$DBH->do("UPDATE wallpaper SET position = - _rowid_ WHERE sha1 = ?", undef, $sha);
 	$DBH->commit();
 }
 
@@ -130,42 +123,51 @@ sub get_list {
 	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE ($criteria)");
 }
 
+#creates a random position value for each entry
 sub determine_order {
 	use List::Util 'shuffle';
-	my @files =  shuffle @{$DBH->selectcol_arrayref("SELECT _rowid_ FROM wallpaper")};
+	my @ids =  shuffle @{$DBH->selectcol_arrayref("SELECT _rowid_ FROM wallpaper WHERE position IS NULL")};
 	my $sth = $DBH->prepare("UPDATE wallpaper SET position = ? WHERE _rowid_ = ?");
-	$sth->execute_array(undef, [shuffle (1..@files)], \@files);
+	my $from = max_pos() + 1;
+	my $to = $from - 1 + @ids;
+	$sth->execute_array(undef, [shuffle ($from..$to)], \@ids);
 	$DBH->commit();
-
 }
 
+#removes the order
+sub remove_order {
+	$DBH->do("UPDATE wallpaper SET position = NULL");
+	$DBH->commit();
+}
+
+#$base
+#search $base for wallpapers
 sub add_folder {
 	my ($base,$path) = @_;
 	$path //= ""; # path is undef when we start at base
-	$STH_INSERT = $DBH->prepare("INSERT OR FAIL INTO wallpaper (path,sha1) VALUES (?,?)");
-	$STH_UPDATE = $DBH->prepare("UPDATE wallpaper SET path = ? WHERE sha1 = ?");
-	$PATHS = $DBH->selectall_hashref("SELECT path, sha1 FROM wallpaper","path");
-	$SHAS = $DBH->selectall_hashref("SELECT sha1, path FROM wallpaper","sha1");
+	$STH_INSERT = $DBH->prepare("INSERT OR FAIL INTO wallpaper (path) VALUES (?)");
+	$PATHS = $DBH->selectall_hashref("SELECT path FROM wallpaper","path");
 	$DBH->{AutoCommit} = 0;
 	_add_folder($base,$path);
 	$DBH->{AutoCommit} = 1;
 }
 
+#$base,$path
+#recursive adds wallpapers in $base.$path
 sub _add_folder {
 	my ($base,$path) = @_;
 	say $base.$path;
 
-	my $PIC;
-	opendir($PIC,$base.$path) or die $!;
+	opendir my $PIC, $base.$path or die $!;
 	
 	while(my $x = readdir($PIC)) {
 		next if $x =~ m/^\.{1,2}$/; 
 		if (-d $base.$path.$x) {
 			_add_folder($base,$path.$x.'\\');
 		}
-		else {
+		elsif (-f _) {
 			if ($x =~ m/\.(jpe?g|gif|png|bmp)$/i) {
-				add_file($base,$path,$x);
+				insert_file($path.$x);
 			}
 		}
 	}
@@ -174,58 +176,13 @@ sub _add_folder {
 	$DBH->commit();
 }
 
-sub add_file {
-	my ($base,$path,$file) = @_;
-	
-	return if $PATHS->{$path.$file}->{sha1};
-	
-	if (-e $base . $path . $file) { 
-		if ($CHECK_DOUBLES) {
-			my $sha = $SHA->addfile($base . $path . $file,"b")->hexdigest;
-			if ($sha) {
-				if (my $opath = $SHAS->{$sha}->{path}) {
-					say "\n",$opath,"\n", $path , "\n";
-					my $ofile = $opath;
-					$ofile =~ s~^.*\\~~;
-					
-					if ((length($file) <= length($ofile)) and (-e $opath)) {
-						unlink $path;
-					}
-					else {
-						update_file($opath,$path,$sha);
-					}
-				}
-				else {
-					insert_file($path.$file,$sha);
-				}
-			}
-			else {
-				die "could not create";
-			}
-		}
-		else {
-			insert_file($path.$file);
-		}
-	}
-	else {
-		say "$base$path$file not found";
-	}
-}
-
+#$path
+#inserts a path into the database (if it is not present)
 sub insert_file {
-	my ($path,$sha) = @_;
-	$STH_INSERT->execute($path,$sha);
-	$PATHS->{$path}->{sha1} = $sha;
-	$SHAS->{$sha}->{path} = $path if $sha;;
-}
-
-sub update_file {
-	my ($opath,$path,$sha) = @_;
-	$STH_UPDATE->execute($sha,$path);
-	$PATHS->{$opath} = undef;
-	$SHAS->{$sha}->{path} = $path;
-	$PATHS->{$path}->{sha1} = $sha;
-	unlink($opath);
+	my ($path) = @_;
+	return if $PATHS->{$path}->{path};
+	$STH_INSERT->execute($path);
+	$PATHS->{$path}->{path} = $path;
 }
 
 1;

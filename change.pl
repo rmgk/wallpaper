@@ -15,21 +15,26 @@ say "Initialise";
 my $INI = WPConfig::load() or die "could not load config";
 WallpaperList::init($INI->{db_path},$INI->{wp_path},$INI->{check_doubles});
 
+if (!WallpaperList::max_pos()) {
+	index_wp_path();
+}
+
 @ARGV or usage();
 foreach (@ARGV) {
-	when(undef) {usage()};
+	when(undef) { usage() };
 	when('delete') { delete_wp() };
 	when('fav') { set_fav() };
 	when('getfav') { getfav() };
 	when('nsfw') { set_nsfw() };
+	when('pregen') { pregenerate_wallpapers() };
 	when('rand') { rand_wp() };
+	when('rescan') { index_wp_path() };
 	when('teu') { teu() };
 	when('tpu') { tpu() };
-	when('voteup') {vote(1) };
-	when('votedown') {vote(-1) };
-	when('pregen') { pregenerate_wallpapers() };
-	when(/-?\d+/) {change_wp($_)};
-	default {usage()};
+	when('voteup') { vote(1) };
+	when('votedown') { vote(-1) };
+	when(/-?\d+/) { change_wp($_)};
+	default { usage() };
 }
 
 cleanup_generated_wallpapers();
@@ -40,11 +45,21 @@ sub usage {
 	say "\tfav - set favourite flag";
 	say "\tgetfav - move flagged with fav to fav_path";
 	say "\tnsfw - set the nsfw flag";
+	say "\tpregen - pregenerates an amount of wallpapers specified by pregen_amount";
+	say "\trand - select a random wallpaper based on rand_criteria";
+	say "\trescan - rescans the wp_path for wallpapers";
 	say "\tteu - search with tineye";
 	say "\ttpu - upload to tinypic and open link";
 	say "\tvoteup - increse vote value by 1 and change to next";
 	say "\tvotedown - decrese vote value by 1 and change to next";
 	say "\t'number' - change wallpaper by that amount";
+}
+
+sub index_wp_path {
+	say "Indexing wp_path";
+	WallpaperList::add_folder($INI->{wp_path});
+	say "Creating Random Order";
+	WallpaperList::determine_order();
 }
 
 sub set_fav {
@@ -59,6 +74,7 @@ sub set_nsfw {
 
 sub delete_wp {
 	my ($path,$sha) = WallpaperList::get_data($INI->{position});
+	warn "could not get path" and return unless ($path);
 	mkdir $INI->{trash_path} or die 'could not create folder'.$INI->{trash_path}.": $!" unless( -d $INI->{trash_path});
 	say "Move: ". $path ." To " . $INI->{trash_path};
 	open my $f, ">>", $INI->{trash_path} . '_map.txt' or die "could not open ". $INI->{trash_path} . '_map.txt:' . $!;
@@ -95,7 +111,7 @@ sub change_wp {
 	while (1) {
 		warn "invalid position $pos" and return if ($pos < 1 or $pos > $max_pos);
 		($rel_path,$sha) = WallpaperList::get_data($pos);
-		last if $sha;
+		last if $sha and $rel_path;
 		return unless $mv;
 		$pos += $mv <=> 0;
 	}
