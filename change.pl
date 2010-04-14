@@ -155,7 +155,7 @@ sub gen_wp {
 
 sub cleanup_generated_wallpapers {
 	say "Cleanup";
-	opendir(my $dh, $INI->{gen_path}) || die "can't opendir ".$INI->{gen_path}.": $!";
+	opendir(my $dh, $INI->{gen_path}) or return;
 	my @dir = grep {-f $INI->{gen_path}.$_ and $_ =~ /^\w+$/ and $_ ne $INI->{current}} readdir($dh);
 	closedir $dh;
     foreach my $file (@dir) {

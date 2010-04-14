@@ -128,7 +128,7 @@ sub determine_order {
 	use List::Util 'shuffle';
 	my @ids =  shuffle @{$DBH->selectcol_arrayref("SELECT _rowid_ FROM wallpaper WHERE position IS NULL")};
 	my $sth = $DBH->prepare("UPDATE wallpaper SET position = ? WHERE _rowid_ = ?");
-	my $from = max_pos() + 1;
+	my $from = (max_pos() // 0) + 1;
 	my $to = $from - 1 + @ids;
 	$sth->execute_array(undef, [shuffle ($from..$to)], \@ids);
 	$DBH->commit();
