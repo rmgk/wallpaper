@@ -2,7 +2,7 @@
 
 Global $pause = False
 
-HotKeySet("{END}" , "toggle")
+HotKeySet("+{END}" , "toggle")
 
 ;variables for axis
 Const $AMIN = 5000
@@ -41,10 +41,6 @@ next
 ;main loop
 
 while 1
-	while $pause 
-		sleep(100)
-	wend
-	
 	$last_state = $state
     $state = _GetJoy($joy,0)
 	
