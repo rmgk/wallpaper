@@ -24,18 +24,18 @@ setHotkeys()
 
 for $i = 1 to UBound($button) - 1
 	$button[$i][0] = Number($button[$i][0])
-	$button[$i][1] = "perl.exe change.pl " & $button[$i][1]
+	$button[$i][1] = "wperl.exe change.pl " & $button[$i][1]
 next 
 for $i = 1 to UBound($pov) - 1
 	$pov[$i][0] = Number($pov[$i][0])
-	$pov[$i][1] = "perl.exe change.pl " & $pov[$i][1]
+	$pov[$i][1] = "wperl.exe change.pl " & $pov[$i][1]
 next
 for $i = 1 to UBound($axis) - 1
 	$axis[$i][0] = Number($axis[$i][0])
-	$axis[$i][1] = "perl.exe change.pl " & $axis[$i][1]
+	$axis[$i][1] = "wperl.exe change.pl " & $axis[$i][1]
 next 
 for $i = 1 to UBound($key) - 1
-	$key[$i][1] = "perl.exe change.pl " & $key[$i][1]
+	$key[$i][1] = "wperl.exe change.pl " & $key[$i][1]
 next 
 
 ;main loop
