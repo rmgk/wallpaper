@@ -13,7 +13,7 @@ use File::Copy;
 
 say "Initialise";
 my $INI = WPConfig::load() or die "could not load config";
-WallpaperList::init($INI->{db_path},$INI->{wp_path},$INI->{check_doubles});
+WallpaperList::init($INI->{db_path},$INI->{wp_path});
 
 if (!WallpaperList::max_pos()) {
 	index_wp_path();
@@ -213,14 +213,15 @@ sub adjust_wallpaper {
 
 	retarget_wallpaper($iw,$ih,$rx,$ry,$abw, $file ,
 		$INI->{annotate},$INI->{anno_offset} ,
-		$INI->{taskbar_offset},$INI->{extend_black});
+		$INI->{taskbar_offset},
+		$INI->{skew});
 	
 	if ($r2x and $r2y) {
 		Wallpaper::workWith(1);
-		retarget_wallpaper($iw,$ih,$r2x,$r2y,$abw, $file ,
-			$INI->{annotate},$INI->{anno_offset} ,
-			$INI->{taskbar_offset2});
-		Wallpaper::extendBlack($r2x,$r2y+$INI->{skew2},"South");
+		retarget_wallpaper($iw,$ih,$r2x,$r2y,$abw, $file,
+			$INI->{annotate2},$INI->{anno_offset2} ,
+			$INI->{taskbar_offset2},
+			$INI->{skew2});
 		Wallpaper::append(0,$INI->{stack});
 		Wallpaper::workWith(0);
 	}
@@ -229,7 +230,7 @@ sub adjust_wallpaper {
 }
 
 sub retarget_wallpaper {
-	my ($iw, $ih , $rx, $ry ,$abw,$file, $annotate,$anno_off,$off, $ex_black ) = @_;
+	my ($iw, $ih , $rx, $ry ,$abw,$file, $annotate,$anno_off,$off,$skew) = @_;
 	my $iz = $iw/$ih;
 	my $rz = $rx/$ry;
 	
@@ -241,12 +242,6 @@ sub retarget_wallpaper {
 		say sprintf ("\tdeformation OUT of range (%.2f < %.2f < %.2f) - keeping ratio",$rz /$abw , $iz , $rz*$abw);
 		Wallpaper::resizeKeep($rx,$ry);
 		Wallpaper::extend($rx,$ry,$off);
-	}
-	
-	#Wallpaper::liquidResize($rx,$ry);
-	
-	if ($ex_black) {
-		Wallpaper::extendBlack(split(/\D+/,$ex_black),"North");
 	}
 	
 	if ($annotate ne "none") {
@@ -264,6 +259,37 @@ sub retarget_wallpaper {
 			Wallpaper::annotate($file,$anno_off);
 		}
 	}
+	
+	Wallpaper::extendBlack(translate_skew($rx,$ry,$skew)) if $skew;
+}
+
+sub translate_skew {
+	my ($rx,$ry, $skew ) = @_;
+	my ($sx,$sy) = split(/[^\d-]+/,$skew);
+	say "skew $sx, $sy";
+	my ($east_west, $north_south) = ("","");
+	if ($sx) {
+		if ($sx > 0) {
+			$east_west = "East";
+			$rx += $sx;
+		}
+		elsif ($sx < 0) {
+			$east_west = "West";
+			$rx -= $sx;
+		}
+	}
+	if ($sy) {
+		if ($sy > 0) {
+			$north_south = "South";
+			$ry += $sy;
+		}
+		elsif ($sx < 0) {
+			$north_south = "North";
+			$ry -= $sy;
+		}
+	}
+	say "skeww:" . join(":",($rx,$ry,$north_south . $east_west));
+	return ($rx,$ry,$north_south . $east_west);
 }
 
 sub set_wallpaper {
