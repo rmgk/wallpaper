@@ -244,6 +244,8 @@ sub retarget_wallpaper {
 		Wallpaper::extend($rx,$ry,$off);
 	}
 	
+	Wallpaper::extendBlack(translate_skew($rx,$ry,$skew)) if $skew;
+	
 	if ($annotate ne "none") {
 		$file =~ s'\\'/'g;
 		if ($annotate eq "path_multiline") {
@@ -259,14 +261,12 @@ sub retarget_wallpaper {
 			Wallpaper::annotate($file,$anno_off);
 		}
 	}
-	
-	Wallpaper::extendBlack(translate_skew($rx,$ry,$skew)) if $skew;
 }
 
 sub translate_skew {
 	my ($rx,$ry, $skew ) = @_;
 	my ($sx,$sy) = split(/[^\d-]+/,$skew);
-	say "skew $sx, $sy";
+	#say "skew $sx, $sy";
 	my ($east_west, $north_south) = ("","");
 	if ($sx) {
 		if ($sx > 0) {
@@ -288,7 +288,7 @@ sub translate_skew {
 			$ry -= $sy;
 		}
 	}
-	say "skeww:" . join(":",($rx,$ry,$north_south . $east_west));
+	#say "skeww:" . join(":",($rx,$ry,$north_south . $east_west));
 	return ($rx,$ry,$north_south . $east_west);
 }
 

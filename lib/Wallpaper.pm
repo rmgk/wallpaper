@@ -208,7 +208,7 @@ sub extendAlphaSaveAsNoHack {
 
 sub extendBlack {
 	my ($x,$y,$grav) = @_;
-	$iM->[$IMG]->Extent(geometry=>$x."x".$y,background=>"rgba(255,0,255,255)",gravity=>$grav);
+	$iM->[$IMG]->Extent(geometry=>$x."x".$y,background=>"rgba(0,0,0,255)",gravity=>$grav);
 }
 
 
