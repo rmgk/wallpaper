@@ -196,6 +196,7 @@ sub saveAs {
 		$iM->[$IMG]->Set(magick => "jpg");
 		my $temp = $iM->[$IMG]->ImageToBlob();
 		$iM->[$IMG]->BlobToImage($temp);
+		$iM->[$IMG] = $iM->[$IMG]->[1];
 	}
 	$iM->[$IMG]->Write(filename=>"$filetype:$filename",depth=>"24", compression=>'None');
 }
