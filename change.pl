@@ -283,7 +283,7 @@ sub translate_skew {
 			$north_south = "South";
 			$ry += $sy;
 		}
-		elsif ($sx < 0) {
+		elsif ($sy < 0) {
 			$north_south = "North";
 			$ry -= $sy;
 		}
