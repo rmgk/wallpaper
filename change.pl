@@ -221,7 +221,7 @@ sub adjust_wallpaper {
 			$INI->{annotate},$INI->{anno_offset} ,
 			$INI->{taskbar_offset2});
 		Wallpaper::extendBlack($r2x,$r2y+$INI->{skew2},"South");
-		Wallpaper::append(0);
+		Wallpaper::append(0,$INI->{stack});
 		Wallpaper::workWith(0);
 	}
 	

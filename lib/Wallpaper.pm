@@ -223,7 +223,8 @@ sub workWith {
 
 sub append {
 	my $target = shift;
-	$iM->[$target] = $iM->append(stack=>"false");
+	my $stack = shift // "false";
+	$iM->[$target] = $iM->append(stack=>$stack);
 }
 
 
