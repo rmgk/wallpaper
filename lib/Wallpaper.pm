@@ -9,13 +9,15 @@ use Image::Magick;
 
 use Cwd qw(abs_path);
 
-my $iM = Image::Magick->new; 
+my $iM;
 
 use constant SPI_SETDESKWALLPAPER  => 20;
 use constant SPIF_UPDATEANDSENDINI => 3;
 
 my $cwd = Cwd::getcwd() .'\\' ;
 my $PNG_HACK;
+
+my $IMG = 0;
 
 
 sub setWallpaper {
@@ -28,48 +30,43 @@ sub openImage {
 	my $file = shift;
 	$PNG_HACK = 0;
 	$PNG_HACK = 1 if ($file =~ /\.png$/i);
-	@$iM = ();
+	$iM = Image::Magick->new(); 
 	$iM->Read($file);
-	if (@$iM > 1) {
-		my $tmp = $iM->[0];
-		@$iM = ();
-		$iM->[0] = $tmp;
-	}
 }
 
 
 sub getDimensions {
-	return $iM->get("width"), $iM->get("height");
+	return $iM->[$IMG]->get("width"), $iM->[$IMG]->get("height");
 }
 
 sub resize {
 	my ($x,$y) = @_;
-	$iM->Resize(width=>$x,height=>$y);
+	$iM->[$IMG]->Resize(width=>$x,height=>$y);
 }
 
 
 sub resizeKeep {
 	my ($x,$y) = @_;
-	$iM->Resize(geometry=>$x."x".$y);
+	$iM->[$IMG]->Resize(geometry=>$x."x".$y);
 }
 
 sub liquidResize {
 	my ($x,$y) = @_;
-	$iM->LiquidResize(geometry=>$x."x".$y,width=>$x,height=>$y);
+	$iM->[$IMG]->LiquidResize(geometry=>$x."x".$y,width=>$x,height=>$y);
 }
 
 sub annotate {
 	my ($text,$off) = @_;
 	#undercolor=>'rgba(255,255,255,0.5)',translate=>($off,0)
-	$iM->Annotate(stroke=>'rgba(0,0,0,0.3)', text=>$text, gravity=>'SouthEast', antialias=>'true',strokewidth=>2,geometry=>"+0+$off");
-	$iM->Annotate(fill=>'rgba(255,255,255,0.9)', text=>$text, gravity=>'SouthEast', antialias=>'true',geometry=>"+0+$off");
+	$iM->[$IMG]->Annotate(stroke=>'rgba(0,0,0,0.3)', text=>$text, gravity=>'SouthEast', antialias=>'true',strokewidth=>2,geometry=>"+0+$off");
+	$iM->[$IMG]->Annotate(fill=>'rgba(255,255,255,0.9)', text=>$text, gravity=>'SouthEast', antialias=>'true',geometry=>"+0+$off");
 }
 
 sub annotateleft {
 	my ($text,$off) = @_;
 	#undercolor=>'rgba(255,255,255,0.5)',translate=>($off,0)
-	$iM->Annotate(stroke=>'rgba(0,0,0,0.3)', text=>$text, gravity=>'SouthWest', antialias=>'true',strokewidth=>2,geometry=>"+0+$off");
-	$iM->Annotate(fill=>'rgba(255,255,255,0.9)', text=>$text, gravity=>'SouthWest', antialias=>'true',geometry=>"+0+$off");
+	$iM->[$IMG]->Annotate(stroke=>'rgba(0,0,0,0.3)', text=>$text, gravity=>'SouthWest', antialias=>'true',strokewidth=>2,geometry=>"+0+$off");
+	$iM->[$IMG]->Annotate(fill=>'rgba(255,255,255,0.9)', text=>$text, gravity=>'SouthWest', antialias=>'true',geometry=>"+0+$off");
 }
 
 sub sumArray {
@@ -115,8 +112,8 @@ sub extend {
 	my ($w,$h) = getDimensions();
 	
 	my ($red,$green,$blue);
-	$iM->Set(magick=>"rgb");
-	my @image = unpack "C*", $iM->ImageToBlob(); # rgb triples
+	$iM->[$IMG]->Set(magick=>"rgb");
+	my @image = unpack "C*", $iM->[$IMG]->ImageToBlob(); # rgb triples
 	
 	my ($R,$G,$B);
 	
@@ -142,9 +139,9 @@ sub extend {
 		
 		my $half = $x - int(($x - $w)/2);
 		($red,$green,$blue)  = sumArray($R->[0],$G->[0],$B->[0]);
-		$iM->Extent(geometry=>$half."x".$y,background=>sprintf("rgb(%d,%d,%d)",$red,$green,$blue),gravity=>"East");
+		$iM->[$IMG]->Extent(geometry=>$half."x".$y,background=>sprintf("rgb(%d,%d,%d)",$red,$green,$blue),gravity=>"East");
 		($red,$green,$blue)  = sumArray($R->[1],$G->[1],$B->[1]);
-		$iM->Extent(geometry=>$x."x".$y,background=>sprintf("rgb(%d,%d,%d)",$red,$green,$blue),gravity=>"West");
+		$iM->[$IMG]->Extent(geometry=>$x."x".$y,background=>sprintf("rgb(%d,%d,%d)",$red,$green,$blue),gravity=>"West");
 	}
 	else {
 		#obenunten
@@ -170,10 +167,10 @@ sub extend {
 		my $half = $y - int(($y - $h)/2) - $offset;
 		if ($half > $h) {
 			($red,$green,$blue)  = sumArray($R->[0],$G->[0],$B->[0]);
-			$iM->Extent(geometry=>$x."x".$half,background=>sprintf("rgb(%d,%d,%d)",$red,$green,$blue),gravity=>"South");
+			$iM->[$IMG]->Extent(geometry=>$x."x".$half,background=>sprintf("rgb(%d,%d,%d)",$red,$green,$blue),gravity=>"South");
 		}
 		($red,$green,$blue)  = sumArray($R->[1],$G->[1],$B->[1]);
-		$iM->Extent(geometry=>$x."x".$y,background=>sprintf("rgb(%d,%d,%d)",$red,$green,$blue),gravity=>"North");
+		$iM->[$IMG]->Extent(geometry=>$x."x".$y,background=>sprintf("rgb(%d,%d,%d)",$red,$green,$blue),gravity=>"North");
 	}
 
 
@@ -183,38 +180,51 @@ sub saveAs {
 	my ($filename,$filetype,$png_hack) = @_;
 	$png_hack //= $PNG_HACK;
 
-	#$iM->Quantize(colorspace=>'gray');
-	#say $iM->get("colorspace");
-	#$iM->Quantize(colorspace=>"RGB");
-	#$iM->Set(depth=>24);
-	#$iM->Set(depth => 8);
-	#$iM->Deskew();
-	#$iM->Separate(channel=>"RGB");
+	#$iM->[$IMG]->Quantize(colorspace=>'gray');
+	#say $iM->[$IMG]->get("colorspace");
+	#$iM->[$IMG]->Quantize(colorspace=>"RGB");
+	#$iM->[$IMG]->Set(depth=>24);
+	#$iM->[$IMG]->Set(depth => 8);
+	#$iM->[$IMG]->Deskew();
+	#$iM->[$IMG]->Separate(channel=>"RGB");
 	
-	$iM->Set(alpha=>"Off");
-	$iM->Strip();
+	$iM->[$IMG]->Set(alpha=>"Off");
+	$iM->[$IMG]->Strip();
 	
 	if ($png_hack) {
 		say "(using png hack)";
-		$iM->Set(magick => "jpg");
-		my $temp = $iM->ImageToBlob();
-		@$iM = ();
-		$iM->BlobToImage($temp);
+		$iM->[$IMG]->Set(magick => "jpg");
+		my $temp = $iM->[$IMG]->ImageToBlob();
+		$iM->[$IMG]->BlobToImage($temp);
 	}
-	$iM->Write(filename=>"$filetype:$filename",depth=>"24", compression=>'None');
+	$iM->[$IMG]->Write(filename=>"$filetype:$filename",depth=>"24", compression=>'None');
 }
 
 sub extendAlphaSaveAsNoHack {
 	my ($x,$y,$filename,$filetype) = @_;
-	$iM->Extent(geometry=>$x."x".$y,background=>"rgba(0,0,0,0)");
-	$iM->Write(filename=>"$filetype:$filename");
+	$iM->[$IMG]->Extent(geometry=>$x."x".$y,background=>"rgba(0,0,0,0)");
+	$iM->[$IMG]->Write(filename=>"$filetype:$filename");
 }
 
-sub extendBlackNorth {
-	my ($x,$y) = @_;
-	$iM->Extent(geometry=>$x."x".$y,background=>"rgba(0,0,0,255)",gravity=>"North");
+sub extendBlack {
+	my ($x,$y,$grav) = @_;
+	$iM->[$IMG]->Extent(geometry=>$x."x".$y,background=>"rgba(0,0,0,255)",gravity=>$grav);
 }
 
+
+sub copy {
+	my $target = shift;
+	$iM->[$target] = $iM->[$IMG]->clone()->[$IMG];
+}
+
+sub workWith {
+	$IMG = shift;
+}
+
+sub append {
+	my $target = shift;
+	$iM->[$target] = $iM->append(stack=>"false");
+}
 
 
 1;

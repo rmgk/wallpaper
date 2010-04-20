@@ -187,7 +187,7 @@ sub load_wallpaper {
 
 sub check_wallpaper {
 	my ($iw,$ih) = Wallpaper::getDimensions();
-	my ($rx,$ry) = split(/\D+/,$INI->{min_resulution});
+	my ($rx,$ry) = split(/\D+/,$INI->{min_resolution});
 	return 0 if (!defined $iw or !defined $ih);
 	my $iz = $iw/$ih;
 	say "\tDimensions: $iw x $ih ($iz)";
@@ -203,14 +203,36 @@ sub check_wallpaper {
 sub adjust_wallpaper {
 	my $file = shift; 
 	my ($iw,$ih) = Wallpaper::getDimensions();
-	
-	my $iz = $iw/$ih;
 
-	my ($rx,$ry) = split(/\D+/,$INI->{resulution});
-	my $rz = $rx/$ry;
+	my ($rx,$ry) = split(/\D+/,$INI->{resolution});
 
 	my $abw = 1 + $INI->{max_deformation};
+	
+	my ($r2x,$r2y) = split(/\D+/,$INI->{resolution2});
+	Wallpaper::copy(1) if ($r2x and $r2y);
 
+	retarget_wallpaper($iw,$ih,$rx,$ry,$abw, $file ,
+		$INI->{annotate},$INI->{anno_offset} ,
+		$INI->{taskbar_offset},$INI->{extend_black});
+	
+	if ($r2x and $r2y) {
+		Wallpaper::workWith(1);
+		retarget_wallpaper($iw,$ih,$r2x,$r2y,$abw, $file ,
+			$INI->{annotate},$INI->{anno_offset} ,
+			$INI->{taskbar_offset2});
+		Wallpaper::extendBlack($r2x,$r2y+$INI->{skew2},"South");
+		Wallpaper::append(0);
+		Wallpaper::workWith(0);
+	}
+	
+	return 1;
+}
+
+sub retarget_wallpaper {
+	my ($iw, $ih , $rx, $ry ,$abw,$file, $annotate,$anno_off,$off, $ex_black ) = @_;
+	my $iz = $iw/$ih;
+	my $rz = $rx/$ry;
+	
 	if (($iz < $rz * $abw) && ($iz > $rz / $abw)) {
 		say sprintf ("\tdeformation IN range (%.2f < %.2f < %.2f) - full screen" , $rz / $abw , $iz , $rz*$abw);
 		Wallpaper::resize($rx,$ry);
@@ -218,18 +240,18 @@ sub adjust_wallpaper {
 	else {
 		say sprintf ("\tdeformation OUT of range (%.2f < %.2f < %.2f) - keeping ratio",$rz /$abw , $iz , $rz*$abw);
 		Wallpaper::resizeKeep($rx,$ry);
-		Wallpaper::extend($rx,$ry,$INI->{taskbar_offset});
+		Wallpaper::extend($rx,$ry,$off);
 	}
-
+	
 	#Wallpaper::liquidResize($rx,$ry);
 	
-	if ($INI->{extend_black}) {
-		Wallpaper::extendBlackNorth(split(/\D+/,$INI->{extend_black}));
+	if ($ex_black) {
+		Wallpaper::extendBlack(split(/\D+/,$ex_black),"North");
 	}
 	
-	if ($INI->{annotate} ne "none") {
+	if ($annotate ne "none") {
 		$file =~ s'\\'/'g;
-		if ($INI->{annotate} eq "path_multiline") {
+		if ($annotate eq "path_multiline") {
 			my @filename = reverse split m'/', $file;
 			my $off = $INI->{anno_offset};
 			for (@filename) {
@@ -238,11 +260,10 @@ sub adjust_wallpaper {
 			}
 		}
 		else {
-			$file =~ s#.+/## unless $INI->{annotate} eq "path";
-			Wallpaper::annotate($file,$INI->{anno_offset});
+			$file =~ s#.+/## unless $annotate eq "path";
+			Wallpaper::annotate($file,$anno_off);
 		}
 	}
-	return 1;
 }
 
 sub set_wallpaper {
