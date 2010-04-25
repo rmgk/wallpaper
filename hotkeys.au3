@@ -1,6 +1,6 @@
 
 
-Global $pause = False
+Global $pause = True
 
 HotKeySet("+{END}" , "toggle")
 
@@ -20,7 +20,6 @@ global $key = IniReadSection ( "hotkeys.ini", "key" )
 global $axis = IniReadSection ( "hotkeys.ini", "axis" )
 global $pov = IniReadSection ( "hotkeys.ini", "pov" )
 
-setHotkeys()
 
 for $i = 1 to UBound($button) - 1
 	$button[$i][0] = Number($button[$i][0])

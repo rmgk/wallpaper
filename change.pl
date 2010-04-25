@@ -97,10 +97,11 @@ sub rand_wp {
 	my $sel = $fav->[int rand @$fav];
 	say "Selected " . $sel->[0] ." from " . @$fav; 
 	gen_wp($sel->[0],$sel->[1]) or return;
-	set_wallpaper($sel->[1]);
 	say "SAVE CONFIG";
 	$INI->{current} = $sel->[1];
 	WPConfig::save();
+	set_wallpaper($sel->[1]);
+
 }
 
 sub change_wp {
@@ -121,12 +122,13 @@ sub change_wp {
 	unless (gen_wp($rel_path,$sha)) {
 		change_wp($mv <=> 0);
 	}
-
-	set_wallpaper($sha);
+	
 	say "Save Config";
 	$INI->{current} = $sha;
 	$INI->{position} = $pos;
 	WPConfig::save();
+	set_wallpaper($sha);
+
 }
 
 sub gen_wp {
