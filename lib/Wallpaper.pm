@@ -32,7 +32,7 @@ sub openImage {
 	$PNG_HACK = 1 if ($file =~ /\.png$/i);
 	$IMG = 0;
 	$iM = Image::Magick->new(); 
-	$iM->Read($file);
+	return $iM->Read($file);
 }
 
 

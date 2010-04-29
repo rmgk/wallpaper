@@ -120,7 +120,7 @@ sub change_wp {
 	say "Change To: $rel_path ($pos)";
 	
 	unless (gen_wp($rel_path,$sha)) {
-		change_wp($mv <=> 0);
+		return change_wp($mv <=> 0);
 	}
 	
 	say "Save Config";
@@ -142,7 +142,11 @@ sub gen_wp {
 			WallpaperList::delete($sha);
 			return;
 		}
-		load_wallpaper($path);
+		if (load_wallpaper($path)) {
+			say "\twallpaper could not be loaded, removing from rotation";
+			WallpaperList::remove_position($sha);
+			return;
+		}
 		if (!check_wallpaper()) {
 			say "\twallpaper failed checks, removing from rotation";
 			WallpaperList::remove_position($sha);
@@ -184,7 +188,7 @@ sub pregenerate_wallpapers {
 
 sub load_wallpaper {
 	my $file = shift; 
-	Wallpaper::openImage($file);
+	return Wallpaper::openImage($file);
 }
 
 sub check_wallpaper {
