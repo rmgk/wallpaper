@@ -43,16 +43,20 @@ while 1
 	$last_state = $state
     $state = _GetJoy($joy,0)
 	
-	for $i = 1 to UBound($button) - 1
-		if button($button[$i][0]) then run($button[$i][1])
-	next 
-	for $i = 1 to UBound($pov) - 1
-		if pov($pov[$i][0]) then run($pov[$i][1])
-	next 
-	for $i = 1 to UBound($axis) - 1
-		if axis($axis[$i][0]) then run($axis[$i][1])
-	next 
-    sleep(10)
+	if $state then		
+		for $i = 1 to UBound($button) - 1
+			if button($button[$i][0]) then run($button[$i][1])
+		next 
+		for $i = 1 to UBound($pov) - 1
+			if pov($pov[$i][0]) then run($pov[$i][1])
+		next 
+		for $i = 1 to UBound($axis) - 1
+			if axis($axis[$i][0]) then run($axis[$i][1])
+		next 
+		sleep(10)
+	else
+		sleep(100)
+	endif
 
 WEnd
 
