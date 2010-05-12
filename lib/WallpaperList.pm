@@ -46,7 +46,8 @@ sub get_data {
 			$sha = $SHA->addfile($WP_PATH . $path,"b")->hexdigest;
 			$sha or die "could not get sha of $path";
 			unless ($DBH->do("UPDATE OR FAIL wallpaper SET sha1 = ? WHERE position = ?",undef,$sha,$position)) {
-				die "failed to update sha1 value. maybe duplicate? (not implemented yet)";
+				my ($double) = $DBH->selectrow_array("SELECT path FROM wallpaper WHERE sha1 = ?",undef,$sha);
+				return ($sha,$path,$double);
 			}
 		}
 		$DBH->commit();

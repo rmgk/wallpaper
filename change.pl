@@ -73,15 +73,21 @@ sub set_nsfw {
 }
 
 sub delete_wp {
-	my ($path,$sha) = WallpaperList::get_data($INI->{position});
+	my $pos = shift // $INI->{position};
+	my ($path,$sha) = get_data($pos);
 	warn "could not get path" and return unless ($path);
+	_delete($path,$sha);
+	WallpaperList::delete($sha);
+}
+
+sub _delete {
+	my ($path,$sha) = @_;
 	mkdir $INI->{trash_path} or die 'could not create folder'.$INI->{trash_path}.": $!" unless( -d $INI->{trash_path});
 	say "Move: ". $path ." To " . $INI->{trash_path};
 	open my $f, ">>", $INI->{trash_path} . '_map.txt' or die "could not open ". $INI->{trash_path} . '_map.txt:' . $!;
-	print $f $INI->{current} . "=" . $path . "\n";
+	print $f $sha . "=" . $path . "\n";
 	close $f;
-	move($INI->{wp_path} . $path,$INI->{trash_path} . $INI->{current});
-	WallpaperList::delete($INI->{current});
+	move($INI->{wp_path} . $path,$INI->{trash_path} . $sha);
 }
 
 sub vote {
@@ -111,7 +117,7 @@ sub change_wp {
 	my ($rel_path,$sha);
 	while (1) {
 		warn "invalid position $pos" and return if ($pos < 1 or $pos > $max_pos);
-		($rel_path,$sha) = WallpaperList::get_data($pos);
+		($rel_path,$sha) = get_data($pos);
 		last if $sha and $rel_path;
 		return unless $mv;
 		$pos += $mv <=> 0;
@@ -179,7 +185,7 @@ sub pregenerate_wallpapers {
  	my $count = $INI->{pregen_amount};
 	my $pos = $INI->{position};
 	while($count--) {
-		my ($path,$sha) = WallpaperList::get_data(++$pos);
+		my ($path,$sha) = get_data(++$pos);
 		next unless $path and $sha;
 		gen_wp($path,$sha);
 	}
@@ -189,6 +195,17 @@ sub pregenerate_wallpapers {
 sub load_wallpaper {
 	my $file = shift; 
 	return Wallpaper::openImage($file);
+}
+
+sub get_data {
+	my $pos = shift; 
+	my ($path,$sha,$double) = WallpaperList::get_data($pos);
+	if ($double) {
+		say "$path has same sha as $double";
+		_delete($path,$sha);
+		return (undef,undef)
+	}
+	return ($path,$sha);
 }
 
 sub check_wallpaper {

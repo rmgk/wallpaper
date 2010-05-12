@@ -193,11 +193,17 @@ sub saveAs {
 	$iM->[$IMG]->Strip();
 	
 	if ($png_hack) {
+		use Data::Dumper;
 		say "(using png hack)";
 		$iM->[$IMG]->Set(magick => "jpg");
 		my $temp = $iM->[$IMG]->ImageToBlob();
-		$iM->[$IMG]->BlobToImage($temp);
-		$iM->[$IMG] = $iM->[$IMG]->[1];
+		my $tiM  = Image::Magick->new();
+		if (!(my $err = $tiM->BlobToImage($temp))) { #error when true
+			$iM->[$IMG] = $tiM;
+		}
+		else {
+			say "BlobToImage had an error $err";
+		}
 	}
 	$iM->[$IMG]->Write(filename=>"$filetype:$filename",depth=>"24", compression=>'None');
 }
