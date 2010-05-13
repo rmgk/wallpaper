@@ -37,27 +37,21 @@ for $i = 1 to UBound($key) - 1
 	$key[$i][1] = "wperl.exe change.pl " & $key[$i][1]
 next 
 
+$state = _GetJoy($joy,0)
 ;main loop
-
 while 1
 	$last_state = $state
     $state = _GetJoy($joy,0)
-	
-	if $state then		
-		for $i = 1 to UBound($button) - 1
-			if button($button[$i][0]) then run($button[$i][1])
-		next 
-		for $i = 1 to UBound($pov) - 1
-			if pov($pov[$i][0]) then run($pov[$i][1])
-		next 
-		for $i = 1 to UBound($axis) - 1
-			if axis($axis[$i][0]) then run($axis[$i][1])
-		next 
-		sleep(10)
-	else
-		sleep(100)
-	endif
-
+	for $i = 1 to UBound($button) - 1
+		if button($button[$i][0]) then run($button[$i][1])
+	next 
+	for $i = 1 to UBound($pov) - 1
+		if pov($pov[$i][0]) then run($pov[$i][1])
+	next 
+	for $i = 1 to UBound($axis) - 1
+		if axis($axis[$i][0]) then run($axis[$i][1])
+	next 
+	sleep(10)
 WEnd
 
 Func hotkeyPressed()
@@ -119,6 +113,7 @@ Func _JoyInit()
 
     $joy=DllStructCreate($JOYINFOEX_struct)
     if @error Then Return 0
+
     DllStructSetData($joy, 1, DllStructGetSize($joy), 1);dwSize = sizeof(struct)
     DllStructSetData($joy, 1, 255, 2)              ;dwFlags = GetAll
     return $joy
