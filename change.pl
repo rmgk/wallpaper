@@ -30,7 +30,7 @@ foreach (@ARGV) {
 	when('rand') { rand_wp() };
 	when('rescan') { index_wp_path() };
 	when('teu') { teu() };
-	when('tpu') { tpu() };
+	when('upload') { upload() };
 	when('voteup') { vote(1) };
 	when('votedown') { vote(-1) };
 	when(/-?\d+/) { change_wp($_)};
@@ -49,7 +49,7 @@ sub usage {
 	say "\trand - select a random wallpaper based on rand_criteria";
 	say "\trescan - rescans the wp_path for wallpapers";
 	say "\tteu - search with tineye";
-	say "\ttpu - upload to tinypic and open link";
+	say "\tupload - upload to some image hoster and open link";
 	say "\tvoteup - increse vote value by 1 and change to next";
 	say "\tvotedown - decrese vote value by 1 and change to next";
 	say "\t'number' - change wallpaper by that amount";
@@ -335,12 +335,12 @@ sub getfav {
 	}
 }
 
-sub tpu {
+sub upload {
 	require UploadTools;
 	my $sha = $INI->{current};
 	my $path = WallpaperList::get_path($sha);
 	$path = $INI->{wp_path} . $path;
-	UploadTools::tpu($path);
+	UploadTools::upload($path);
 }
 
 sub teu {

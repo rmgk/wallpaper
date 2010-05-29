@@ -33,6 +33,11 @@ sub teu {
 	my $response = $ua->request($request);
 	say "calling system";
 	system("start " . $response->header("Location"));
+
+}
+
+sub upload {
+	return directupload(@_);
 }
 
 #$file
@@ -91,5 +96,23 @@ sub tpu {
 	say "calling system";
 	system("start " . $1);
 }
+
+sub directupload {
+	my $file = shift;
+	my $ua = init_ua();
+	say "uploading file";
+	my $request = POST 'http://www.directupload.net/index.php?mode=upload' ,
+			Content_Type => 'multipart/form-data',
+			Content      => [ 
+								bilddatei   => [$file],
+							];
+							
+	my $response = $ua->request($request);
+	my $body = $response->content();
+	$body =~ m#(http://\w+.directupload.net/images/\w+/\w+\.\w{3,4})#i;
+	say "calling system";
+	system("start " . $1);
+}
+
 
 1;

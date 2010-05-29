@@ -4,7 +4,7 @@
 4=-1 pregen
 8=1 pregen
 16=teu
-32=tpu
+32=upload
 64=nsfw
 128=fav
 256=rand
@@ -21,7 +21,7 @@ x=votedown 1 pregen
 y=-1 pregen
 c=1 pregen
 t=teu
-z=tpu
+z=upload
 s=nsfw
 f=fav
 r=rand
