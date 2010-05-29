@@ -4,6 +4,8 @@ Global $pause = True
 
 HotKeySet("+{END}" , "toggle")
 
+Global $hotkeytimeout = 0;
+
 ;variables for axis
 Const $AMIN = 5000
 Const $AMAX = 65535 - $AMIN
@@ -52,24 +54,35 @@ while 1
 		if axis($axis[$i][0]) then run($axis[$i][1])
 	next 
 	sleep(10)
+	if $hotkeytimeout > 0 then
+		tooltip($hotkeytimeout)
+		$hotkeytimeout = $hotkeytimeout - 1
+		if $hotkeytimeout <= 0 then
+			unsetHotkeys()
+		endif
+	endif
 WEnd
 
 Func hotkeyPressed()
 	for $i = 1 to UBound($key) - 1
 		if @HotKeyPressed = $key[$i][0] then run($key[$i][1] )
 	next 
+	$hotkeytimeout = 2000
 EndFunc
 
 func setHotkeys()
 	for $i = 1 to UBound($key) - 1
 		HotKeySet($key[$i][0], "hotkeyPressed")
 	next 
+	$hotkeytimeout = 2000
 EndFunc
 
 Func unsetHotkeys()
 	for $i = 1 to UBound($key) - 1
 		HotKeySet($key[$i][0])
 	next 
+	$hotkeytimeout = 0
+	tooltip("");
 EndFunc
 
 Func axis($id)
