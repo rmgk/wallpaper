@@ -98,7 +98,7 @@ sub set_fav {
 #increases vote amount of $sha by $vote
 sub vote {
 	my ($sha,$vote) = @_;
-	$DBH->do("UPDATE OR FAIL wallpaper SET vote = vote + ? WHERE sha1 = ?" , undef , $vote,$sha)
+	$DBH->do("UPDATE OR FAIL wallpaper SET vote = CASE WHEN vote IS NULL THEN ? ELSE vote + ? END WHERE sha1 = ?" , undef , $vote, $vote ,$sha)
 		or die 'failed to update vote';
 	$DBH->commit();
 }
