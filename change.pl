@@ -28,6 +28,7 @@ foreach (@ARGV) {
 	when('nsfw') { set_nsfw() };
 	when('pregen') { pregenerate_wallpapers() };
 	when('rand') { rand_wp() };
+	when('reorder') { reorder_wp(); };
 	when('rescan') { index_wp_path() };
 	when('teu') { teu() };
 	when('upload') { upload() };
@@ -47,6 +48,7 @@ sub usage {
 	say "\tnsfw - set the nsfw flag";
 	say "\tpregen - pregenerates an amount of wallpapers specified by pregen_amount";
 	say "\trand - select a random wallpaper based on rand_criteria";
+	say "\treorder - recreates the order of the wallpapers according to the order_criteria";
 	say "\trescan - rescans the wp_path for wallpapers";
 	say "\tteu - search with tineye";
 	say "\tupload - upload to some image hoster and open link";
@@ -59,7 +61,16 @@ sub index_wp_path {
 	say "Indexing wp_path";
 	WallpaperList::add_folder($INI->{wp_path});
 	say "Adding Random Order";
-	WallpaperList::determine_order();
+	WallpaperList::determine_order("position IS NULL");
+}
+
+sub reorder_wp {
+	say "removing old order";
+	WallpaperList::remove_order();
+	say "creating new order";
+	WallpaperList::determine_order($INI->{order_criteria});
+	$INI->{position} = 1;
+	WPConfig::save();
 }
 
 sub set_fav {
@@ -300,7 +311,7 @@ sub translate_skew {
 			$east_west = "West";
 			$rx -= $sx;
 		}
-	}
+	}	
 	if ($sy) {
 		if ($sy > 0) {
 			$north_south = "South";
