@@ -33,6 +33,10 @@ sub teu {
 							];
 							
 	my $response = $ua->request($request);
+	if ($hasClipboard) {
+		say "setting clipboard";
+		Win32::Clipboard()->Set($response->header("Location"));
+	}
 	say "calling system";
 	system("start " . $response->header("Location"));
 	return $response->header("Location");
