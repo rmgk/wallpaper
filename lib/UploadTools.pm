@@ -7,6 +7,8 @@ use warnings;
 use LWP;
 use LWP::UserAgent;
 use HTTP::Request::Common qw(POST);
+my $hasClipboard = require Win32::Clipboard;
+
 
 # -> $ua
 #initialises the user agent
@@ -33,11 +35,17 @@ sub teu {
 	my $response = $ua->request($request);
 	say "calling system";
 	system("start " . $response->header("Location"));
-
+	return $response->header("Location");
 }
 
 sub upload {
-	return directupload(@_);
+	my $url = directupload(@_);
+	if ($hasClipboard) {
+		say "setting clipboard";
+		Win32::Clipboard()->Set($url);
+	}
+	say "calling system";
+	system("start " . $url);
 }
 
 #$file
@@ -93,8 +101,7 @@ sub tpu {
 
 	$content =~ m#<a href="([^"]+)" class="thickbox">Zoom</a>#si;
 
-	say "calling system";
-	system("start " . $1);
+	return $1;
 }
 
 sub directupload {
@@ -110,8 +117,7 @@ sub directupload {
 	my $response = $ua->request($request);
 	my $body = $response->content();
 	$body =~ m#(http://\w+.directupload.net/images/\w+/\w+\.\w{3,4})#i;
-	say "calling system";
-	system("start " . $1);
+	return $1;
 }
 
 
