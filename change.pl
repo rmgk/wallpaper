@@ -278,7 +278,12 @@ sub retarget_wallpaper {
 		Wallpaper::extend($rx,$ry,$off);
 	}
 	
-	Wallpaper::extendBlack(translate_skew($rx,$ry,$skew)) if $skew;
+	for my $s (split (',',$skew)) {
+		my $orientation;
+		($rx,$ry,$orientation) = translate_skew($rx,$ry,$s);
+		say $rx.$ry.$orientation;
+		Wallpaper::extendBlack(($rx,$ry,$orientation));
+	}
 	
 	if ($annotate ne "none") {
 		$file =~ s'\\'/'g;
@@ -304,11 +309,11 @@ sub translate_skew {
 	my ($east_west, $north_south) = ("","");
 	if ($sx) {
 		if ($sx > 0) {
-			$east_west = "East";
+			$east_west = "West";
 			$rx += $sx;
 		}
 		elsif ($sx < 0) {
-			$east_west = "West";
+			$east_west = "East";
 			$rx -= $sx;
 		}
 	}	
