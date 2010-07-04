@@ -1,6 +1,6 @@
 [buttons]
-1=voteup 1 pregen
-2=votedown 1 pregen
+1=votedown 1 pregen
+2=voteup 1 pregen
 4=-1 pregen
 8=1 pregen
 16=teu
