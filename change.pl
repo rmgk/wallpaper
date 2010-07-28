@@ -26,6 +26,7 @@ foreach (@ARGV) {
 	when('fav') { set_fav() };
 	when('getfav') { getfav() };
 	when('nsfw') { set_nsfw() };
+	when('open') { open_wallpaper() };
 	when('pregen') { pregenerate_wallpapers() };
 	when('rand') { rand_wp() };
 	when('reorder') { reorder_wp(); };
@@ -46,6 +47,7 @@ sub usage {
 	say "\tfav - set favourite flag";
 	say "\tgetfav - move flagged with fav to fav_path";
 	say "\tnsfw - set the nsfw flag";
+	say "\topen - opens the image";
 	say "\tpregen - pregenerates an amount of wallpapers specified by pregen_amount";
 	say "\trand - select a random wallpaper based on rand_criteria";
 	say "\treorder - recreates the order of the wallpapers according to the order_criteria";
@@ -364,6 +366,13 @@ sub teu {
 	my $path = WallpaperList::get_path($sha);
 	$path = $INI->{wp_path} . $path;
 	UploadTools::teu($path);
+}
+
+sub open_wallpaper {
+	my $sha = $INI->{current};
+	my $path = WallpaperList::get_path($sha);
+	say "Calling system";
+	system($INI->{wp_path} . $path );
 }
 
 sub lock_check {
