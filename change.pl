@@ -281,6 +281,7 @@ sub retarget_wallpaper {
 	}
 	
 	for my $s (split (',',$skew)) {
+		next unless $s;
 		my $orientation;
 		($rx,$ry,$orientation) = translate_skew($rx,$ry,$s);
 		Wallpaper::extendBlack(($rx,$ry,$orientation));
