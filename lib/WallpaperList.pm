@@ -111,6 +111,14 @@ sub set_nsfw {
 	$DBH->commit();
 }
 
+#$sha
+#removes nsfw, fav and vote
+sub purge {
+	my $sha = shift;
+	$DBH->do("UPDATE wallpaper SET nsfw = NULL, fav = NULL, vote = NULL WHERE sha1 = ?", undef, $sha);
+	$DBH->commit();
+}
+
 # -> $max_pos
 #returns the $max_pos
 sub max_pos {
@@ -122,6 +130,12 @@ sub max_pos {
 sub get_list {
 	my $criteria = shift;
 	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE ($criteria)");
+}
+
+#$sha -> \%{column => value}
+sub get_stat {
+	my $sha = shift;
+	return $DBH->selectrow_hashref("SELECT * FROM wallpaper WHERE sha1 = ?",undef , $sha);
 }
 
 #creates a random position value for each entry

@@ -28,9 +28,11 @@ foreach (@ARGV) {
 	when('nsfw') { set_nsfw() };
 	when('open') { open_wallpaper() };
 	when('pregen') { pregenerate_wallpapers() };
+	when('purge') { purge() };
 	when('rand') { rand_wp() };
 	when('reorder') { reorder_wp(); };
 	when('rescan') { index_wp_path() };
+	when('stat') { show_wp_stat() };
 	when('teu') { teu() };
 	when('upload') { upload() };
 	when('voteup') { vote(1) };
@@ -49,9 +51,11 @@ sub usage {
 	say "\tnsfw - set the nsfw flag";
 	say "\topen - opens the image";
 	say "\tpregen - pregenerates an amount of wallpapers specified by pregen_amount";
+	say "\tpurge - removes flags and votes from wallpaper";
 	say "\trand - select a random wallpaper based on rand_criteria";
 	say "\treorder - recreates the order of the wallpapers according to the order_criteria";
 	say "\trescan - rescans the wp_path for wallpapers";
+	say "\tstat - displays statistics for the current image";
 	say "\tteu - search with tineye";
 	say "\tupload - upload to some image hoster and open link";
 	say "\tvoteup - increse vote value by 1 and change to next";
@@ -83,6 +87,19 @@ sub set_fav {
 sub set_nsfw {
 	say "NSFW: " . $INI->{current};
 	WallpaperList::set_nsfw($INI->{current});
+}
+
+sub purge {
+	say "PURGE: " . $INI->{current};
+	WallpaperList::purge($INI->{current});
+}
+
+sub show_wp_stat {
+	my $stat = WallpaperList::get_stat($INI->{current});
+	say "STATS: ";
+	foreach (keys %$stat) {
+		say "\t$_: " . (defined $stat->{$_} ? $stat->{$_} : "undef");
+	}
 }
 
 sub delete_wp {
