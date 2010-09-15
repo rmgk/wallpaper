@@ -31,8 +31,15 @@ sub openImage {
 	$PNG_HACK = 0;
 	$PNG_HACK = 1 if ($file =~ /\.png$/i);
 	$IMG = 0;
-	$iM = Image::Magick->new(); 
-	return $iM->Read($file);
+	$iM = Image::Magick->new();
+	my $ret = $iM->Read($file);
+	#this is a hack for animated images
+	if (@$iM > 1) {
+		my $tmp = $iM->[0]; 
+		@$iM = ();
+		$iM->[0] = $tmp;
+	}
+	return $ret;
 }
 
 
