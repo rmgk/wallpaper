@@ -9,3 +9,9 @@ config.ini
 *.png
 *.jpeg
 *.gif
+perl
+get
+*bak
+hotkeys.ini
+*.exe
+desktop.ini
