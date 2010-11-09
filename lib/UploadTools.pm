@@ -7,7 +7,7 @@ use warnings;
 use LWP;
 use LWP::UserAgent;
 use HTTP::Request::Common qw(POST);
-my $hasClipboard = require Win32::Clipboard;
+my $hasClipboard = eval { require Win32::Clipboard; };
 
 
 # -> $ua
@@ -37,6 +37,9 @@ sub teu {
 		say "setting clipboard";
 		Win32::Clipboard()->Set($response->header("Location"));
 	}
+	else {
+		say "install Win32::Clipboard to get the uploaded link directly into your clipboard";
+	}
 	say "calling system";
 	system("start " . $response->header("Location"));
 	return $response->header("Location");
@@ -47,6 +50,9 @@ sub upload {
 	if ($hasClipboard) {
 		say "setting clipboard";
 		Win32::Clipboard()->Set($url);
+	}
+	else {
+		say "install Win32::Clipboard to get the uploaded link directly into your clipboard";
 	}
 	say "calling system";
 	system("start " . $url);
