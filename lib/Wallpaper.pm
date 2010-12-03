@@ -26,6 +26,10 @@ sub setWallpaper {
 	$syspinf->Call(SPI_SETDESKWALLPAPER, 0, $cwd . $wp, SPIF_UPDATEANDSENDINI);
 }
 
+return 1;
+
+__END__
+
 sub openImage {
 	my $file = shift;
 	$PNG_HACK = 0;

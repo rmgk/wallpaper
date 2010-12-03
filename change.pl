@@ -10,7 +10,6 @@ use WPConfig;
 use Cwd qw(abs_path);
 use File::Copy;
 
-
 say "Initialise";
 my $INI = WPConfig::load() or die "could not load config";
 WallpaperList::init($INI->{db_path},$INI->{wp_path});
@@ -178,19 +177,23 @@ sub gen_wp {
 			WallpaperList::delete($sha);
 			return;
 		}
-		if (load_wallpaper($path)) {
-			say "\twallpaper could not be loaded, removing from rotation";
-			WallpaperList::remove_position($sha);
-			return;
-		}
-		if (!check_wallpaper()) {
+		#if (load_wallpaper($path)) {
+		#	say "\twallpaper could not be loaded, removing from rotation";
+		#	WallpaperList::remove_position($sha);
+		#	return;
+		#}
+		#if (!check_wallpaper()) {
+		#	say "\twallpaper failed checks, removing from rotation";
+		#	WallpaperList::remove_position($sha);
+		#	return;
+		#}
+		if (adjust_wallpaper($rel_path,$sha)) { #returns true on failure
 			say "\twallpaper failed checks, removing from rotation";
 			WallpaperList::remove_position($sha);
 			return;
 		}
-		adjust_wallpaper($rel_path);
-		say "\tSave As: $sha";
-		Wallpaper::saveAs($INI->{gen_path} .$sha, 'bmp');
+		#say "\tSave As: $sha";
+		#Wallpaper::saveAs($INI->{gen_path} .$sha, 'bmp');
 	}
 	return 1;
 }
@@ -222,11 +225,6 @@ sub pregenerate_wallpapers {
 	lock_release('pregen');
 }
 
-sub load_wallpaper {
-	my $file = shift; 
-	return Wallpaper::openImage($file);
-}
-
 sub get_data {
 	my $pos = shift; 
 	my ($path,$sha,$double) = WallpaperList::get_data($pos);
@@ -238,48 +236,57 @@ sub get_data {
 	return ($path,$sha);
 }
 
-sub check_wallpaper {
-	my ($iw,$ih) = Wallpaper::getDimensions();
-	my ($rx,$ry) = split(/\D+/,$INI->{min_resolution});
-	return 0 if (!defined $iw or !defined $ih);
-	my $iz = $iw/$ih;
-	say "\tDimensions: $iw x $ih ($iz)";
-	if ($iw < $rx or $ih < $ry) {
-		say "image to small";
-		return 0
-	}
-	else {
-		return 1
-	}
-}
-
 sub adjust_wallpaper {
-	my $file = shift; 
-	my ($iw,$ih) = Wallpaper::getDimensions();
+	my ($file,$sha) = @_; 
+	
+	#my ($iw,$ih) = Wallpaper::getDimensions();
 
 	my ($rx,$ry) = split(/\D+/,$INI->{resolution});
 
 	my $abw = 1 + $INI->{max_deformation};
 	
 	my ($r2x,$r2y) = split(/\D+/,$INI->{resolution2});
-	Wallpaper::copy(1) if ($r2x and $r2y);
-
-	retarget_wallpaper($iw,$ih,$rx,$ry,$abw, $file ,
-		$INI->{annotate},$INI->{anno_offset} ,
-		$INI->{taskbar_offset},
-		$INI->{skew});
 	
-	if ($r2x and $r2y) {
-		Wallpaper::workWith(1);
-		retarget_wallpaper($iw,$ih,$r2x,$r2y,$abw, $file,
-			$INI->{annotate2},$INI->{anno_offset2} ,
-			$INI->{taskbar_offset2},
-			$INI->{skew2});
-		Wallpaper::append(0,$INI->{stack});
-		Wallpaper::workWith(0);
+	my ($sx,$sy) = split(/\D+/,$INI->{composite_position});
+	
+	my ($mx, $my) = split(/\D+/,$INI->{min_resolution});
+	
+	my $an1 = "";
+	my $an2 = "";
+	
+	if ($INI->{annotate} ne "none") {
+		my $f = $file;
+		$f =~ s'\\'/'g;
+		$f =~ s#.+/## unless $INI->{annotate} eq "path";
+		$an1 = $f
 	}
+	if ($INI->{annotate2} ne "none") {
+		my $f = $file;
+		$f =~ s'\\'/'g;
+		$f =~ s#.+/## unless $INI->{annotate2} eq "path";
+		$an2 = $f
+	}
+	use Time::HiRes;
+	my $t = Time::HiRes::time();
+	my $ret = system('gwp.exe',$INI->{wp_path} . $file,"generated/$sha",$rx,$ry,$r2x,$r2y,$mx,$my,$abw,$sx,$sy,$an1,$INI->{anno_offset},$an2,$INI->{anno_offset2});
+	say Time::HiRes::time() - $t;
+	return $ret;
+	#Wallpaper::copy(1) if ($r2x and $r2y);
+
+	#retarget_wallpaper($iw,$ih,$rx,$ry,$abw, $file ,
+	#	$INI->{annotate},$INI->{anno_offset} ,
+	#	$INI->{taskbar_offset},
+	#	$INI->{skew});
 	
-	return 1;
+	#if ($r2x and $r2y) {
+	#	Wallpaper::workWith(1);
+	#	retarget_wallpaper($iw,$ih,$r2x,$r2y,$abw, $file,
+	#		$INI->{annotate2},$INI->{anno_offset2} ,
+	#		$INI->{taskbar_offset2},
+	#		$INI->{skew2});
+	#	Wallpaper::append(0,$INI->{stack});
+	#	Wallpaper::workWith(0);
+	#}
 }
 
 sub retarget_wallpaper {
