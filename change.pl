@@ -252,19 +252,12 @@ sub adjust_wallpaper {
 	my ($mx, $my) = split(/\D+/,$INI->{min_resolution});
 	
 	my $an1 = "";
-	my $an2 = "";
 	
 	if ($INI->{annotate} ne "none") {
 		my $f = $file;
 		$f =~ s'\\'/'g;
 		$f =~ s#.+/## unless $INI->{annotate} eq "path";
 		$an1 = $f
-	}
-	if ($INI->{annotate2} ne "none") {
-		my $f = $file;
-		$f =~ s'\\'/'g;
-		$f =~ s#.+/## unless $INI->{annotate2} eq "path";
-		$an2 = $f
 	}
 	
 	my ($xt, $yt);
@@ -279,8 +272,7 @@ sub adjust_wallpaper {
 	#use Time::HiRes;
 	#my $time =  Time::HiRes::time;
 	
-	my $ret = system('gwp.exe',$INI->{wp_path} . $file,"generated/$sha",$rx,$ry,$r2x,$r2y,$mx,$my,$abw,$sx,$sy,$xt,$yt,"pink",$an1,
-							$INI->{anno_offset},$an2,$INI->{anno_offset2},'BMP3');
+	my $ret = system('gwp.exe',$INI->{wp_path} . $file,"generated/$sha",$rx,$ry,$r2x,$r2y,$mx,$my,$abw,$sx,$sy,$xt,$yt,"pink",$an1,$INI->{anno_offset},'BMP3');
 	#say "system: $ret";
 	#say  Time::HiRes::time - $time;
 	return $ret;
