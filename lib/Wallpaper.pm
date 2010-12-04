@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 use Win32::API;
-use Image::Magick;
+#use Image::Magick;
 
 use Cwd qw(abs_path);
 

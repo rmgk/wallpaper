@@ -269,7 +269,7 @@ sub adjust_wallpaper {
 	
 	my $png_hack = 'bmp';
 	if ($file ~~ /\.png$/i) {
-		$png_hack = 'jpg';
+		$png_hack = 'bmp';
 	}
 	
 	#use Time::HiRes;
