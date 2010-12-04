@@ -267,16 +267,20 @@ sub adjust_wallpaper {
 		$an2 = $f
 	}
 	
-	my $png_hack = 'bmp';
-	if ($file ~~ /\.png$/i) {
-		$png_hack = 'bmp';
+	my ($xt, $yt);
+	if ($INI->{resolution_total}) {
+		($xt,$yt) = split(/\D+/,$INI->{resolution_total});
+	}
+	else{
+		$xt = $sx + $r2x;
+		$yt = $sy + $r2y;
 	}
 	
 	#use Time::HiRes;
 	#my $time =  Time::HiRes::time;
 	
-	my $ret = system('gwp.exe',$INI->{wp_path} . $file,"generated/$sha",$rx,$ry,$r2x,$r2y,$mx,$my,$abw,$sx,$sy,$an1,
-							$INI->{anno_offset},$an2,$INI->{anno_offset2},'bmp',$png_hack);
+	my $ret = system('gwp.exe',$INI->{wp_path} . $file,"generated/$sha",$rx,$ry,$r2x,$r2y,$mx,$my,$abw,$sx,$sy,$xt,$yt,"pink",$an1,
+							$INI->{anno_offset},$an2,$INI->{anno_offset2},'BMP3');
 	#say "system: $ret";
 	#say  Time::HiRes::time - $time;
 	return $ret;
