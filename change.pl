@@ -22,6 +22,7 @@ if (!WallpaperList::max_pos()) {
 foreach (@ARGV) {
 	when(undef) { usage() };
 	when('delete') { delete_wp() };
+	when('deleteall') { delete_all() };
 	when('fav') { set_fav() };
 	when('getfav') { getfav() };
 	when('nsfw') { set_nsfw() };
@@ -44,7 +45,8 @@ cleanup_generated_wallpapers();
 
 sub usage {
 	say "\nThe following commandline options are available:\n";
-	say "\tdelete - move to trash_path; removes from db";
+	say "\tdelete - move to trash_path";
+	say "\tdeleteall - move all matching delete_all_criteria to trash_path";
 	say "\tfav - set favourite flag";
 	say "\tgetfav - move flagged with fav to fav_path";
 	say "\tnsfw - set the nsfw flag";
@@ -107,6 +109,13 @@ sub delete_wp {
 	warn "could not get path" and return unless ($path);
 	_delete($path,$sha);
 	WallpaperList::delete($sha);
+}
+
+sub delete_all {
+	my $list = WallpaperList::get_list('path IS NOT NULL AND sha1 IS NOT NULL AND (' . $INI->{delete_all_criteria} . ')');
+	foreach (@$list) {
+		_delete(@$_);
+	}
 }
 
 sub _delete {
