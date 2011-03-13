@@ -10,7 +10,6 @@ config.ini
 *.jpeg
 *.gif
 perl
-get
 *bak
 hotkeys.ini
 desktop.ini
