@@ -18,34 +18,30 @@ use URI;
 #	$TERM = 1;
 #};
 
-my $purl = 'http://wall.alphacoders.com/newest_wallpapers.php?v=small&page=';
+my $purl = 'http://wall.alphacoders.com/highest_rated.php?v=small&page=';
+my %known_ids;
 
 sub main {
-	print "remember: images must not be redistributed without the authors approval\n";
-	print "press ctrl+c to abort (or data corruption might occur)\n";
-
 	mkdir "wpa" unless -e "wpa"; 
-
-	my $id;
 	if (-e "id.txt") {
 		open (my $fh, '<', 'id.txt');
-		chomp($id = <$fh>);
+		while (chomp( my $id = <$fh>)) {
+			$known_ids{$id} = 1;
+		}
 		close $fh;
 	}
-	$id ||= 1;
-	say $id;
-	
+
 	my $tree = DlUtil::get_tree($purl . 1);
 	my $pagi = $$tree->look_down(_tag => 'div', class => 'options_bottom')->look_down(_tag => 'div', class => 'pagination');
 	my @pages = $pagi->content_list();
 	my $last_page = $pages[-2]->attr('href');
 	($last_page) = ($last_page =~ m'page=(\d+)$');
-	my ($newest_id) = (($$tree->look_down(_tag => 'img', class => 'small_square'))[-1]->parent->attr("href") =~ m'i=(\d+)$');
-	undef $tree;
-	say $last_page, " ", $newest_id;
+	#my ($newest_id) = (($$tree->look_down(_tag => 'img', class => 'small_square'))[-1]->parent->attr("href") =~ m'i=(\d+)$');
+	#say $last_page, " ", $newest_id;
 	
-	my ($page,$ftree) = search_id($id,$newest_id,1,1,$last_page);
-	start_download($id,$page,$ftree);
+	#my ($page,$ftree) = search_id($id,$newest_id,1,1,$last_page);
+	#start_download($id,$page,$ftree);
+	start_download(1,$last_page,$tree);
 }
 
 sub search_id {
@@ -74,23 +70,23 @@ sub search_id {
 }
 
 sub start_download {
-	my ($id,$page,$tree) = @_;
+	my ($page,$last_page,$tree) = @_;
+	my $downloaded = 0;
 	
-	while ($page >= 1 and $tree) {
-		my @images = reverse map {$_->parent->attr('href') =~ m'i=(\d+)$'; $1 } $$tree->look_down(_tag => 'img', class => 'small_square');
+	while ($page <= $last_page and $tree) {
+		my @images = map {$_->parent->attr('href') =~ m'i=(\d+)$'; $1 } $$tree->look_down(_tag => 'img', class => 'small_square');
 		
-		my $downloaded = 0;
+		
 		for my $i (@images) {
-			next if $i < $id;
-			$id = $i;
-			open (my $fh, '>', 'id.txt');
-			print $fh $id;
+			next if exists $known_ids{$i};
+			$known_ids{$i} = 1;
+			open (my $fh, '>>', 'id.txt');
+			print $fh $i, "\n";
 			close $fh;
-			$id++;
 			download($i);
-			$downloaded = 1;
+			exit if ++$downloaded > 140;
 		}
-		$page-- if !$downloaded;
+		$page++;
 		$tree = DlUtil::get_tree($purl . $page);
 	}
 

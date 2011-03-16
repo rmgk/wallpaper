@@ -16,7 +16,7 @@ our $ua;
 sub _init_ua {
 	say('initialise user agent');
 	$ua = new LWP::UserAgent;  # we create a global UserAgent object
-	$ua->agent("vdlu/".$DlUtil::VERSION->normal());
+	$ua->agent("dlu/".$DlUtil::VERSION->normal());
 	$ua->timeout(15);
 	$ua->env_proxy;
 	$ua->conn_cache(LWP::ConnCache->new());
