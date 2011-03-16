@@ -59,7 +59,7 @@ sub usage {
 	say "\tstat - displays statistics for the current image";
 	say "\tteu - search with tineye";
 	say "\tupload - upload to some image hoster and open link";
-	say "\tvoteup - increse vote value by 1 and change to next";
+	say "\tvoteup - increase vote value by 1 and change to next";
 	say "\tvotedown - decrese vote value by 1 and change to next";
 	say "\t'number' - change wallpaper by that amount";
 }
