@@ -198,6 +198,7 @@ sub gen_wp {
 		#}
 		if (adjust_wallpaper($rel_path,$sha)) { #returns true on failure
 			say "\twallpaper failed checks, removing from rotation";
+			WallpaperList::vote($sha,-10000);
 			WallpaperList::remove_position($sha);
 			return;
 		}
