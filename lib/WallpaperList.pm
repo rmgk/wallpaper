@@ -47,7 +47,7 @@ sub get_data {
 			$sha or die "could not get sha of $path";
 			unless ($DBH->do("UPDATE OR FAIL wallpaper SET sha1 = ? WHERE position = ?",undef,$sha,$position)) {
 				my ($double) = $DBH->selectrow_array("SELECT path FROM wallpaper WHERE sha1 = ?",undef,$sha);
-				return ($sha,$path,$double);
+				return ($path,$sha,$double);
 			}
 		}
 		$DBH->commit();
