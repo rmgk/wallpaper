@@ -68,7 +68,7 @@ sub index_wp_path {
 	say "Indexing wp_path";
 	WallpaperList::add_folder($INI->{wp_path});
 	say "Adding Random Order";
-	WallpaperList::determine_order("position IS NULL");
+	WallpaperList::determine_order("position IS NULL AND vote IS NULL");
 }
 
 sub reorder_wp {
