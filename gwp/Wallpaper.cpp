@@ -1,19 +1,9 @@
-#include "Manipulator.h"
+#include "Wallpaper.h"
 
 using namespace Magick;
 
-Manipulator::Manipulator(void)
-{
-}
 
-
-Manipulator::~Manipulator(void)
-{
-}
-
-
-
-Color Manipulator::getBorderColor(Image& image, GravityType border) 
+Color wpc::getBorderColor(Image& image, GravityType border) 
 {
 		int red[16][16][16] = {0};
 		int green[16][16][16] = {0};
@@ -69,7 +59,7 @@ Color Manipulator::getBorderColor(Image& image, GravityType border)
 		}
 }
 
-void Manipulator::frame(Image& image,int x, int y) 
+void wpc::frame(Image& image,int x, int y) 
 {
 	int w = image.columns();
 	int h = image.rows();
@@ -100,7 +90,7 @@ void Manipulator::frame(Image& image,int x, int y)
 	}
 }
 
-void Manipulator::retarget(Image& image, int x, int y, double abw) 
+void wpc::retarget(Image& image, int x, int y, double abw) 
 {
 	float iz = (float)image.columns() / (float)image.rows();
 	float tz = (float)x/(float)y;
@@ -116,7 +106,7 @@ void Manipulator::retarget(Image& image, int x, int y, double abw)
 	}
 }
 
-void Manipulator::annotate(Image& image, const std::string& text, const Geometry& geo) 
+void wpc::annotate(Image& image, const std::string& text, const Geometry& geo) 
 {
 	image.strokeAntiAlias(true);
 	Color old = image.strokeColor();

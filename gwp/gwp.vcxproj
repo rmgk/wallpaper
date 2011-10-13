@@ -30,7 +30,10 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Template|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <CharacterSet>
+    </CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -51,8 +54,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>C:\Program Files (x86)\ImageMagick-6.6.9-Q8\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files (x86)\ImageMagick-6.6.9-Q8\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program Files %28x86%29\boost\boost_1_46_1;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files %28x86%29\boost\boost_1_46_1\lib;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\lib;$(LibraryPath)</LibraryPath>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -90,7 +93,7 @@
       <AdditionalDependencies>CORE_RL_magick_.lib;CORE_RL_Magick++_.lib;X11.lib;odbc32.lib;odbccp32.lib;winmm.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
@@ -126,11 +129,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Manipulator.cpp" />
+    <ClCompile Include="Environment.cpp" />
+    <ClCompile Include="Wallpaper.cpp" />
     <ClCompile Include="gwp.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Manipulator.h" />
+    <ClInclude Include="Environment.h" />
+    <ClInclude Include="Wallpaper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

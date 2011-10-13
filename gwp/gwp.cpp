@@ -9,67 +9,98 @@
 #include <tchar.h>
 #include <stdio.h>
 #include <shellapi.h>
-#include "Manipulator.h"
-
+#include "Wallpaper.h"
+#include "Environment.h"
+#include <boost/filesystem.hpp>
+#include <numeric>
 
 using namespace Magick;
 using namespace std;
+namespace fs = boost::filesystem;
+
+bool convertWP(const char* src) 
+{
+	auto env = wpc::getScreens();
+	int numScreens = get<0>(env);
+	auto screens = get<3>(env);
+	vector<int> width;
+	vector<int> height;
+	for (int i = 0; i < numScreens; ++i)
+	{
+		width.push_back(screens[i].right - screens[i].left);
+		height.push_back(screens[i].bottom - screens[i].top);
+	}
+	int min_width = accumulate(width.begin(),width.end(),0) / get<0>(env) / 2;
+	int min_height = accumulate(height.begin(),height.end(),0) / get<0>(env) / 2;
+	double abw = 0.2;
+	int width_total = get<1>(env);
+	int height_total = get<2>(env);
+
+	Image canvas( src );
+	//discard small images
+	if(canvas.rows() < min_height || canvas.columns() < min_width)
+		return false;
+	//add white background for transparent images
+	canvas.extent(Geometry(canvas.columns(),canvas.rows()),"white");
+
+	Image orig;
+	if (numScreens > 1)
+		orig = Image(canvas);
+
+	wpc::retarget(canvas,width[0],height[0],abw);
+	if (numScreens > 1) {
+		canvas.backgroundColor("pink");
+		canvas.extent(Geometry(width_total,height_total));
+		for (int i = 1; i < numScreens; ++i)
+		{
+			Image temp(orig);
+			wpc::retarget(temp,width[i],height[i],abw);
+			int x = screens[i].left;
+			int y = screens[i].top;
+			/* when in tiling wallpaper mode, the origin is at the upper left corner of the
+			 * primary monitor. if any secondary monitor is left or above the primary its 
+			 * coordinates will be negative. adding the total size to the negative position
+			 * gives the correct position but that may cause the image to overflow. 
+			 * if it overflows it needs to be drawn again at the original position which
+			 * causes the oveflown part to be drawn at the correct position.
+			 */
+			if (x < 0) x += width_total;
+			if (y < 0) y += height_total;
+			canvas.composite(temp,x,y);
+			if (x + width[i] > width_total)
+				canvas.composite(temp,x-width_total,y);
+			if (y + height[i] > height_total)
+				canvas.composite(temp,x,y-height_total);
+		}
+			
+	}
+	//wpc::annotate(img,"dies ist ein test","+0+2");
+
+	canvas.magick("BMP3");
+	canvas.write("wallpaper");
+}
 
 int main( int argc, char ** argv)
 {
+	// Initialize ImageMagick install location for Windows
+	InitializeMagick(*argv);
+	
+	if (argc < 2) 
+		return 1;
+	wpc::setRegistry();
+	try {
+		convertWP(argv[1]);
+		string wppath(fs::current_path().string() + "\\wallpaper");
+		char* wpcstr = const_cast<char*>(wppath.c_str());
+		cout << wpc::setWP(wpcstr) << endl;
+	}
+	catch( exception &error_ )
+	{
+		cout << "Caught exception: " << error_.what() << endl;
+		return 1;
+	}
 
-  // Initialize ImageMagick install location for Windows
-  InitializeMagick(*argv);
-
-  if (argc < 18) 
-	return 1;
-  
-  try {
-
-		int x1 = atoi(argv[3]);
-		int y1 = atoi(argv[4]);
-		int x2 = atoi(argv[5]);
-		int y2 = atoi(argv[6]);
-		int mx = atoi(argv[7]);
-		int my = atoi(argv[8]);
-		double abw = atof(argv[9]);
-		int xc = atoi(argv[10]); //composition position
-		int yc = atoi(argv[11]);
-		int xt = atoi(argv[12]); //composition position
-		int yt = atoi(argv[13]);
-
-		Image img( argv[1] );
-		if(img.rows() < my || img.columns() < mx)
-			return 2;
-
-		img.extent(Geometry(img.columns(),img.rows()),"white");
-
-		Image img2;
-		if (x2 && y2)
-			img2 = Image(img);
-
-		Manipulator::retarget(img,x1,y1,abw);
-		if (x2 && y2)
-			Manipulator::retarget(img2,x2,y2,abw);
-		img.backgroundColor(argv[14]);
-		img.extent(Geometry(xt,yt));
-		if (x2 && y2) 
-			img.composite(img2,xc,yc);
-
-		Manipulator::annotate(img,argv[15],argv[16]);
-
-		img.magick(argv[17]);
-		img.write(argv[2]);
-
-
-  }
-  catch( exception &error_ )
-    {
-      cout << "Caught exception: " << error_.what() << endl;
-      return 1;
-    }
-
-  return 0;
+	return 0;
 }
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
@@ -79,3 +110,5 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 {
 	 return main(__argc,__argv);
 }
+
+
