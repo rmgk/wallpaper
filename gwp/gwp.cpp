@@ -1,18 +1,15 @@
 #include <Magick++.h>
 #include <string>
 #include <iostream>
-#include <list>
-#include <cstdio>
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
 #include <windows.h>
-#include <tchar.h>
-#include <stdio.h>
 #include <shellapi.h>
 #include "Wallpaper.h"
 #include "Environment.h"
 #include <boost/filesystem.hpp>
 #include <numeric>
+#include "WallpaperList.h"
 
 using namespace Magick;
 using namespace std;
@@ -78,6 +75,8 @@ bool convertWP(const char* src)
 
 	canvas.magick("BMP3");
 	canvas.write("wallpaper");
+
+	return true;
 }
 
 int main( int argc, char ** argv)
@@ -85,8 +84,13 @@ int main( int argc, char ** argv)
 	// Initialize ImageMagick install location for Windows
 	InitializeMagick(*argv);
 	
-	if (argc < 2) 
-		return 1;
+	//if (argc < 2) 
+	//	return 1;
+
+	wpl::init("wp.db");
+
+	string path(wpl::get_path(2));
+	cout << path << endl;
 	wpc::setRegistry();
 	try {
 		convertWP(argv[1]);
@@ -99,6 +103,8 @@ int main( int argc, char ** argv)
 		cout << "Caught exception: " << error_.what() << endl;
 		return 1;
 	}
+	
+	wpl::close();
 
 	return 0;
 }
