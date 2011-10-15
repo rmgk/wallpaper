@@ -27,6 +27,9 @@
     <ClInclude Include="Wallpaper.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="polarssl\sha1.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WallpaperList.cpp">
@@ -42,6 +45,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="Wallpaper.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="polarssl\sha1.c">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

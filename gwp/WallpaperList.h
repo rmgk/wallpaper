@@ -10,4 +10,6 @@ namespace wpl
 	bool create_tables();
 	int get_position();
 	void set_position(int pos);
+	void add_directory(const std::string& dir);
+	int max_position();
 }

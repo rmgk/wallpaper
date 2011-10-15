@@ -27,6 +27,8 @@ int main( int argc, char ** argv)
 	wpl::init("wp.db");
 	int cur = wpl::get_position();
 
+	wpl::add_directory("D:\\Pictures\\");
+
 	string path("D:\\Pictures\\");
 	path += wpl::get_path(++cur);
 	cout << path << endl;
