@@ -81,11 +81,21 @@ void wpl::list()
 std::string wpl::get_path(int position)
 {
 	std::string result;
+	exec("SELECT wppath FROM config",noop,
+		[&result](stmtp sth)
+		{
+			const unsigned char* p = sqlite3_column_text(sth,0);
+			if (p)
+				result.assign(reinterpret_cast<const char*>(p));
+		});
+	if (!result.length()) return result;
 	exec("SELECT path FROM wallpaper WHERE position = ?",
 		[position](stmtp sth){ sqlite3_bind_int(sth,1,position); },
 		[&result](stmtp sth)
 		{
-			result.assign(reinterpret_cast<const char*>(sqlite3_column_text(sth,0)));
+			const unsigned char* p = sqlite3_column_text(sth,0);
+			if (p) result.append(reinterpret_cast<const char*>(p));
+			else result.clear();
 		});
 	return result;
 }
@@ -126,8 +136,9 @@ void wpl::add_directory(const std::string& dir)
 	fs::recursive_directory_iterator end;
 	int last = max_position();
 	exec("BEGIN",noop,noop);
+	exec("UPDATE config SET wppath = ?",[&dir](stmtp sth){ sqlite3_bind_text(sth,1,dir.c_str(),-1,SQLITE_STATIC); },noop);
 	sqlite3_stmt* sth;
-	sqlite3_prepare(dbh,"INSERT OR REPLACE INTO wallpaper (position,path) VALUES (?,?)",-1,&sth,NULL);
+	sqlite3_prepare(dbh,"INSERT OR IGNORE INTO wallpaper (position,path) VALUES (?,?)",-1,&sth,NULL);
 	for(; iter != end; ++iter)
 	{
 		auto p = iter->path();
@@ -137,7 +148,7 @@ void wpl::add_directory(const std::string& dir)
 		}
 		else if (fs::is_regular_file(p))
 		{
-			std::string path(p.generic_string().substr(dir.length(),-1));
+			std::string path(p.string().substr(dir.length(),-1));
 			const char* cpath(path.c_str());
 			int path_length = path.length() + 1;
 			sqlite3_bind_int(sth, 1, ++last);

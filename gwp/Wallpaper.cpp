@@ -2,6 +2,8 @@
 #include "Environment.h"
 #include <vector>
 #include <numeric>
+#include <iostream>
+
 using namespace Magick;
 
 
@@ -135,33 +137,31 @@ bool wpc::convertWP(const char* src)
 	auto screens = get<3>(env);
 	vector<int> width;
 	vector<int> height;
+	int width_total = get<1>(env);
+	int height_total = get<2>(env);
+	//std::cout << "number of screens: " << numScreens << "\n total width: " << width_total << " total height: " << height_total << std::endl;
 	for (int i = 0; i < numScreens; ++i)
 	{
 		width.push_back(screens[i].right - screens[i].left);
 		height.push_back(screens[i].bottom - screens[i].top);
+		//std::cout << "screen " << i << "\n width: " << width[i] << " height: " << height[i] << "\n x: " << screens[i].left << " y: " << screens[i].top << endl;
 	}
 	int min_width = accumulate(width.begin(),width.end(),0) / get<0>(env) / 2;
 	int min_height = accumulate(height.begin(),height.end(),0) / get<0>(env) / 2;
 	double abw = 1.2;
-	int width_total = get<1>(env);
-	int height_total = get<2>(env);
 
-	Image canvas( src );
+	Image orig( src );
 	//discard small images
-	if(canvas.rows() < min_height || canvas.columns() < min_width)
+	if(orig.rows() < min_height || orig.columns() < min_width)
 		return false;
 	//add white background for transparent images
-	canvas.extent(Geometry(canvas.columns(),canvas.rows()),"white");
+	orig.extent(Geometry(orig.columns(),orig.rows()),"white");
 
-	Image orig;
-	if (numScreens > 1)
-		orig = Image(canvas);
-
-	wpc::retarget(canvas,width[0],height[0],abw);
+	Image canvas;
 	if (numScreens > 1) {
 		canvas.backgroundColor("pink");
 		canvas.extent(Geometry(width_total,height_total));
-		for (int i = 1; i < numScreens; ++i)
+		for (int i = 0; i < numScreens; ++i)
 		{
 			Image temp(orig);
 			wpc::retarget(temp,width[i],height[i],abw);
@@ -183,6 +183,10 @@ bool wpc::convertWP(const char* src)
 				canvas.composite(temp,x,y-height_total);
 		}
 			
+	}
+	else {
+		wpc::retarget(orig,width[0],height[0],abw);
+		canvas = orig;
 	}
 	//wpc::annotate(img,"dies ist ein test","+0+2");
 
