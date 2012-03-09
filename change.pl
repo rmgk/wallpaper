@@ -32,6 +32,7 @@ foreach (@ARGV) {
 	when('rand') { rand_wp() };
 	when('reorder') { reorder_wp(); };
 	when('rescan') { index_wp_path() };
+	when('sketchy') { set_sketchy() };
 	when('stat') { show_wp_stat() };
 	when('teu') { teu() };
 	when('upload') { upload() };
@@ -56,6 +57,7 @@ sub usage {
 	say "\trand - select a random wallpaper based on rand_criteria";
 	say "\treorder - recreates the order of the wallpapers according to the order_criteria";
 	say "\trescan - rescans the wp_path for wallpapers";
+	say "\tsketchy - sets the nsfw level to sketchy";
 	say "\tstat - displays statistics for the current image";
 	say "\tteu - search with tineye";
 	say "\tupload - upload to some image hoster and open link";
@@ -88,6 +90,11 @@ sub set_fav {
 sub set_nsfw {
 	say "NSFW: " . $INI->{current};
 	WallpaperList::set_nsfw($INI->{current});
+}
+
+sub set_sketchy {
+	say "Sketchy: " . $INI->{current};
+	WallpaperList::set_sketchy($INI->{current});
 }
 
 sub purge {

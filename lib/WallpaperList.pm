@@ -112,6 +112,14 @@ sub set_nsfw {
 }
 
 #$sha
+#sets sketchy for $sha
+sub set_sketchy {
+	my $sha = shift;
+	$DBH->do("UPDATE wallpaper SET nsfw = 0 WHERE sha1 = ?", undef, $sha);
+	$DBH->commit();
+}
+
+#$sha
 #removes nsfw, fav and vote
 sub purge {
 	my $sha = shift;
