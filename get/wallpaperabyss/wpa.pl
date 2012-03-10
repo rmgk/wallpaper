@@ -25,7 +25,8 @@ sub main {
 	mkdir "wpa" unless -e "wpa"; 
 	if (-e "id.txt") {
 		open (my $fh, '<', 'id.txt');
-		while (chomp( my $id = <$fh>)) {
+		while (my $id = <$fh>) {
+			chomp $id;
 			$known_ids{$id} = 1;
 		}
 		close $fh;
@@ -84,7 +85,7 @@ sub start_download {
 			print $fh $i, "\n";
 			close $fh;
 			download($i);
-			exit if ++$downloaded > 140;
+			exit if ++$downloaded > 240;
 		}
 		$page++;
 		$tree = DlUtil::get_tree($purl . $page);
@@ -102,6 +103,7 @@ sub download {
 	my ($cat,$sub) = split /\s+-\s+/, $img->attr('alt'), 2;
 	my ($imgurl) = $img->attr('src');
 	my ($file) = $imgurl =~ m'/(\d+\.\w+)$'; 
+	$sub =~ s#/#_#g;
 	
 	mkdir "wpa/$cat" unless -e "wpa/$cat";
 	mkdir "wpa/$cat/$sub" unless -e "wpa/$cat/$sub";
