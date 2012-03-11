@@ -12,4 +12,6 @@ namespace wpl
 	void set_position(int pos);
 	void add_directory(const std::string& dir);
 	int max_position();
+	void set_wpdir(const std::string & dir);
+	std::string get_wpdir();
 }

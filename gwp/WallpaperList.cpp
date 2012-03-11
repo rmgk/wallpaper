@@ -1,16 +1,20 @@
 #include "WallpaperList.h"
-#include "sqlite3.h"
 #include <iostream>
 #include <boost/filesystem.hpp>
 #include "polarssl\sha1.h"
+#include <soci.h>
+#include <backends\sqlite3\soci-sqlite3.h>
+#include <string>
+#include <algorithm>
+#include <boost\optional.hpp>
 
 namespace fs = boost::filesystem;
+using namespace soci;
+using namespace std;
+using namespace boost;
 
 namespace wpl {
-	typedef sqlite3_stmt* stmtp;
-	sqlite3* dbh;
-	auto noop = [](stmtp){};
-	template<class B, class F> void exec(const char* query, B bind, F fun);
+	session sql;
 	std::string hexdigest(const char* file);
 }
 
@@ -28,117 +32,82 @@ std::string wpl::hexdigest(const char* file)
 	return hash;
 }
 
-template<class B, class F> void wpl::exec(const char* query, B bind, F fun)
-{
-	sqlite3_stmt* sth;
-	int rc;
-	if( (rc = sqlite3_prepare(dbh,query,-1,&sth,NULL)) != 0) 
-	{
-		std::cout << sqlite3_errmsg(dbh) << std::endl;
-	}
-	bind(sth);
-	while ( (rc = sqlite3_step(sth)) == SQLITE_ROW )
-	{
-		fun(sth);
-	}
-	if (rc != SQLITE_DONE) 
-	{
-		std::cout << sqlite3_errmsg(dbh) << std::endl;
-	}
-	sqlite3_finalize(sth);
-}
-
 bool wpl::init(const char* file) 
 {
-    if (int rc = sqlite3_open(file, &dbh)) 
+	sql.open(sqlite3,file);
+	sql << "SELECT name FROM sqlite_master WHERE type='table' AND name='wallpaper'";
+	if (sql.got_data())
 	{
-		return false;
-	}
-	sqlite3_stmt* sth;
-	sqlite3_prepare(dbh,"SELECT name FROM sqlite_master WHERE type='table' AND name='wallpaper'",-1,&sth,NULL);
-	if (sqlite3_step(sth) == SQLITE_ROW)
-	{
-		sqlite3_finalize(sth);
 		return true;
 	}
-	sqlite3_finalize(sth);
-	sqlite3_exec(dbh,"CREATE TABLE wallpaper (position INT UNIQUE, sha1 CHAR UNIQUE, path CHAR UNIQUE, discard INT, fav INT, nsfw INT, remove INT)",NULL,NULL,NULL);
-	sqlite3_exec(dbh,"CREATE TABLE config (position INT, current CHAR, wppath CHAR)",NULL,NULL,NULL);
-	sqlite3_exec(dbh,"INSERT INTO config VALUES (0,NULL,NULL)",NULL,NULL,NULL);
+	transaction tr(sql); 
+	sql << "CREATE TABLE wallpaper (position INT UNIQUE, sha1 CHAR UNIQUE, path CHAR UNIQUE, vote INT, fav INT, nsfw INT, remove INT)";
+	sql << "CREATE TABLE config (position INT, current CHAR, wpdir CHAR)";
+	sql << "INSERT INTO config VALUES (0,NULL,NULL)";
+	tr.commit();
 	return true;
 }
 
 void wpl::list()
 {
 	std::cout << "list" << std::endl;
-	exec("SELECT path,sha1 FROM wallpaper WHERE fav IS NOT NULL",noop,
-		[](sqlite3_stmt* sth)
-		{ 
-			std::cout << sqlite3_column_text(sth,0) << " " << sqlite3_column_text(sth,1) << std::endl; 
-		});
+	rowset<row> rs = sql.prepare << "SELECT path,sha1 FROM wallpaper WHERE fav IS NOT NULL";
+	for_each(rs.begin(), rs.end(), [](const row & r)
+	{ 
+		std::cout << r.get<string>(0) << " " << r.get<string>(1) << std::endl; 
+	});
 }
 
 std::string wpl::get_path(int position)
 {
-	std::string result;
-	exec("SELECT wppath FROM config",noop,
-		[&result](stmtp sth)
-		{
-			const unsigned char* p = sqlite3_column_text(sth,0);
-			if (p)
-				result.assign(reinterpret_cast<const char*>(p));
-		});
-	if (!result.length()) return result;
-	exec("SELECT path FROM wallpaper WHERE position = ?",
-		[position](stmtp sth){ sqlite3_bind_int(sth,1,position); },
-		[&result](stmtp sth)
-		{
-			const unsigned char* p = sqlite3_column_text(sth,0);
-			if (p) result.append(reinterpret_cast<const char*>(p));
-			else result.clear();
-		});
-	return result;
+	string path;
+	sql << "SELECT path FROM wallpaper WHERE position = ?", into(path), use(position);
+	return path;
 }
 
 int wpl::get_position()
 {
 	int res;
-	exec("SELECT position FROM config",noop,[&res](sqlite3_stmt* sth){ res = sqlite3_column_int(sth,0); });
+	sql << "SELECT position FROM config", into(res);
 	return res;
 }
 
 void wpl::set_position(int position)
 {
-	exec("UPDATE config SET position = ?", 
-		[position](stmtp sth){ sqlite3_bind_int(sth,1,position); }, 
-		noop);
+	sql << "UPDATE config SET position = ?", use(position);
 }
-
 
 void wpl::close()
 {
-	sqlite3_close(dbh);
+	sql.close();
 }
 
 int wpl::max_position()
 {
 	int pos;
-	exec("SELECT max(position) FROM wallpaper",noop,
-		[&pos](stmtp sth){
-			pos = sqlite3_column_int(sth,0);
-		});
+	sql << "SELECT max(position) FROM wallpaper", into(pos);
 	return pos;
+}
+
+void wpl::set_wpdir(const string & dir)
+{
+	sql << "UPDATE config SET wpdir = ?", use(dir);
+}
+
+std::string wpl::get_wpdir()
+{
+	string dir;
+	sql << "SELECT wpdir FROM config", into(dir);
+	return dir;
 }
 
 void wpl::add_directory(const std::string& dir)
 {
 	fs::recursive_directory_iterator iter(dir);
 	fs::recursive_directory_iterator end;
-	int last = max_position();
-	exec("BEGIN",noop,noop);
-	exec("UPDATE config SET wppath = ?",[&dir](stmtp sth){ sqlite3_bind_text(sth,1,dir.c_str(),-1,SQLITE_STATIC); },noop);
-	sqlite3_stmt* sth;
-	sqlite3_prepare(dbh,"INSERT OR IGNORE INTO wallpaper (position,path) VALUES (?,?)",-1,&sth,NULL);
+	string path;
+	transaction tr(sql);
+	statement st = (sql.prepare << "INSERT OR IGNORE INTO wallpaper (path) VALUES (?)", use(path));
 	for(; iter != end; ++iter)
 	{
 		auto p = iter->path();
@@ -148,16 +117,10 @@ void wpl::add_directory(const std::string& dir)
 		}
 		else if (fs::is_regular_file(p))
 		{
-			std::string path(p.string().substr(dir.length(),-1));
-			const char* cpath(path.c_str());
-			int path_length = path.length() + 1;
-			sqlite3_bind_int(sth, 1, ++last);
-			sqlite3_bind_text(sth, 2, cpath, path_length, SQLITE_STATIC);
-			sqlite3_step(sth);
-			sqlite3_reset(sth);
+			path.assign(p.string());
+			st.execute(true);
 		}
 	}
-	sqlite3_finalize(sth);
-	exec("COMMIT",noop,noop);
+	tr.commit();
 }
 

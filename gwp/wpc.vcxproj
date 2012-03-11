@@ -37,16 +37,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Program Files (x86)\boost\boost_1_46_1;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\include;$(IncludePath)</IncludePath>
+    <IncludePath>D:\wallpaper\gwp;D:\soci\src;D:\soci\src\core;C:\Program Files (x86)\boost\boost_1_46_1;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LibraryPath>C:\Program Files (x86)\boost\boost_1_46_1\lib;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>D:\soci\build\lib\Debug;C:\Program Files (x86)\boost\boost_1_46_1\lib;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>C:\Program Files (x86)\boost\boost_1_46_1;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\include;$(IncludePath)</IncludePath>
+    <IncludePath>D:\wallpaper\gwp;D:\soci\src;D:\soci\src\core;C:\Program Files (x86)\boost\boost_1_46_1;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LibraryPath>C:\Program Files (x86)\boost\boost_1_46_1\lib;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>D:\soci\build\lib\Release;C:\Program Files (x86)\boost\boost_1_46_1\lib;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -54,11 +54,11 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>NDEBUG;WIN32;_CONSOLE;_VISUALC_;NeedFunctionPrototypes;_DLL;_MAGICKMOD_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>CORE_RL_magick_.lib;CORE_RL_Magick++_.lib;X11.lib;odbc32.lib;odbccp32.lib;winmm.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libsoci_core_3_1.lib;soci_core_3_1.lib;libsoci_sqlite3_3_1.lib;soci_sqlite3_3_1.lib;libsoci_empty_3_1.lib;soci_empty_3_1.lib;CORE_RL_magick_.lib;CORE_RL_Magick++_.lib;X11.lib;odbc32.lib;odbccp32.lib;winmm.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -73,7 +73,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>CORE_RL_magick_.lib;CORE_RL_Magick++_.lib;X11.lib;odbc32.lib;odbccp32.lib;winmm.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libsoci_core_3_1.lib;soci_core_3_1.lib;libsoci_sqlite3_3_1.lib;soci_sqlite3_3_1.lib;libsoci_empty_3_1.lib;soci_empty_3_1.lib;CORE_RL_magick_.lib;CORE_RL_Magick++_.lib;X11.lib;odbc32.lib;odbccp32.lib;winmm.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
