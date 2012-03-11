@@ -13,3 +13,14 @@ perl
 *bak
 hotkeys.ini
 desktop.ini
+*.suo
+*.sdf
+*.ipch
+*.tlog
+*.obj
+*.[pi]db
+*.log
+*.exe
+*.manifest
+*.lastbuildstate
+*.ilk
