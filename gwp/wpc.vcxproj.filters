@@ -21,13 +21,13 @@
     <ClInclude Include="Environment.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="sqlite3.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="Wallpaper.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="polarssl\sha1.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="sqlite3.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
@@ -41,13 +41,13 @@
     <ClCompile Include="gwp.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="sqlite3.c">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="Wallpaper.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="polarssl\sha1.c">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="sqlite3.c">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

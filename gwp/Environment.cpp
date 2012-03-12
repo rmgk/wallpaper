@@ -54,7 +54,7 @@ bool wpc::setRegistry()
 	return TRUE;
 }
 
-int wpc::setWP(char* wp) 
+int wpc::setWP(wchar_t* wp)
 {
 	return SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, wp, SPIF_UPDATEINIFILE);
 }

@@ -3,67 +3,70 @@
 #include <vector>
 #include <numeric>
 #include <iostream>
+#include <atlstr.h>
+#include <atlconv.h>
+#include <boost\locale.hpp>
 
 using namespace Magick;
-
+namespace fs = boost::filesystem;
 
 Color wpc::getBorderColor(Image& image, GravityType border) 
 {
-		int red[16][16][16] = {0};
-		int green[16][16][16] = {0};
-		int blue[16][16][16] = {0};
-		int count[16][16][16] = {0};
-		int most_count = 0;
-		short most[3] = {0};
-		int average[3] = {0};
-		int i_max;
-		if (border == EastGravity || border == WestGravity) 
-			i_max = image.rows();
-		else if (border == NorthGravity || border == SouthGravity)
-			i_max = image.columns();
-		else 
-			return Color("green");
+	int red[16][16][16] = {0};
+	int green[16][16][16] = {0};
+	int blue[16][16][16] = {0};
+	int count[16][16][16] = {0};
+	int most_count = 0;
+	short most[3] = {0};
+	int average[3] = {0};
+	int i_max;
+	if (border == EastGravity || border == WestGravity)
+		i_max = image.rows();
+	else if (border == NorthGravity || border == SouthGravity)
+		i_max = image.columns();
+	else
+		return Color("green");
 
-		for (int i = 0; i < i_max ; i++) {
-			Color c;
-			switch(border) 
-			{
-				case EastGravity : c = image.pixelColor(image.columns()-1,i); break; //rechts
-				case WestGravity : c = image.pixelColor(0,i); break; //links
-				case NorthGravity : c = image.pixelColor(i,0); break; //oben
-				case SouthGravity : c = image.pixelColor(i,image.rows()-1); break; //unten
-				default: c = Color("green");
-			}
-			short r = c.redQuantum()/16;
-			short g = c.greenQuantum()/16;
-			short b = c.blueQuantum()/16;
-			int j = ++count[r][g][b];
-			if (j > most_count) {
-				most_count = j;
-				most[0] = r;
-				most[1] = g;
-				most[2] = b;
-			}
-			red[r][g][b] += c.redQuantum();
-			green[r][g][b] += c.greenQuantum();
-			blue[r][g][b] += c.blueQuantum();
-
-			average[0] += c.redQuantum();
-			average[1] += c.greenQuantum();
-			average[2] += c.blueQuantum();
-		}
-
-		if (most_count > i_max/20.0) 
+	for (int i = 0; i < i_max ; i++) {
+		Color c;
+		switch(border)
 		{
-			return Color(red[most[0]][most[1]][most[2]] / most_count, green[most[0]][most[1]][most[2]] / most_count, blue[most[0]][most[1]][most[2]] / most_count);
+			case EastGravity : c = image.pixelColor(image.columns()-1,i); break; //rechts
+			case WestGravity : c = image.pixelColor(0,i); break; //links
+			case NorthGravity : c = image.pixelColor(i,0); break; //oben
+			case SouthGravity : c = image.pixelColor(i,image.rows()-1); break; //unten
+			default: c = Color("green");
 		}
-		else 
-		{
-			return Color(average[0] / i_max , average[1] / i_max , average[2] / i_max);
+		short r = c.redQuantum()/16;
+		short g = c.greenQuantum()/16;
+		short b = c.blueQuantum()/16;
+		int j = ++count[r][g][b];
+		if (j > most_count) {
+			most_count = j;
+			most[0] = r;
+			most[1] = g;
+			most[2] = b;
 		}
+		red[r][g][b] += c.redQuantum();
+		green[r][g][b] += c.greenQuantum();
+		blue[r][g][b] += c.blueQuantum();
+
+		average[0] += c.redQuantum();
+		average[1] += c.greenQuantum();
+		average[2] += c.blueQuantum();
+	}
+
+	if (most_count > i_max/20.0)
+	{
+		return Color(red[most[0]][most[1]][most[2]] / most_count, green[most[0]][most[1]][most[2]] / most_count, blue[most[0]][most[1]][most[2]] / most_count);
+	}
+	else
+	{
+		return Color(average[0] / i_max , average[1] / i_max , average[2] / i_max);
+	}
 }
 
-void wpc::frame(Image& image,int x, int y) 
+void wpc::frame(Image& image,int x, int y)
 {
 	int w = image.columns();
 	int h = image.rows();
@@ -94,7 +97,7 @@ void wpc::frame(Image& image,int x, int y)
 	}
 }
 
-void wpc::retarget(Image& image, int x, int y, double abw) 
+void wpc::retarget(Image& image, int x, int y, double abw)
 {
 	float iz = (float)image.columns() / (float)image.rows();
 	float tz = (float)x/(float)y;
@@ -110,7 +113,7 @@ void wpc::retarget(Image& image, int x, int y, double abw)
 	}
 }
 
-void wpc::annotate(Image& image, const std::string& text, const Geometry& geo) 
+void wpc::annotate(Image& image, const std::string& text, const Geometry& geo)
 {
 	image.strokeAntiAlias(true);
 	Color old = image.strokeColor();
@@ -128,7 +131,7 @@ void wpc::annotate(Image& image, const std::string& text, const Geometry& geo)
 }
 
 
-bool wpc::convertWP(const char* src) 
+bool wpc::convertWP(const fs::path& src)
 {
 	using namespace std;
 
@@ -150,7 +153,10 @@ bool wpc::convertWP(const char* src)
 	int min_height = accumulate(height.begin(),height.end(),0) / get<0>(env) / 2;
 	double abw = 1.2;
 
-	Image orig( src );
+	//string utf8_path(boost::locale::conv::utf_to_utf<char,wchar_t>(src.wstring()));
+	string utf8_path(CW2A(src.wstring().c_str(),CP_UTF8));
+
+	Image orig( utf8_path );
 	//discard small images
 	if(orig.rows() < min_height || orig.columns() < min_width)
 		return false;
@@ -165,6 +171,12 @@ bool wpc::convertWP(const char* src)
 		{
 			Image temp(orig);
 			wpc::retarget(temp,width[i],height[i],abw);
+			if (i == numScreens - 1)
+			{
+				string text(boost::locale::conv::utf_to_utf<char,wchar_t>(src.filename().wstring()));
+				wpc::annotate(temp,text,"+0+2");
+			}
+			
 			int x = screens[i].left;
 			int y = screens[i].top;
 			/* when in tiling wallpaper mode, the origin is at the upper left corner of the
@@ -188,7 +200,6 @@ bool wpc::convertWP(const char* src)
 		wpc::retarget(orig,width[0],height[0],abw);
 		canvas = orig;
 	}
-	//wpc::annotate(img,"dies ist ein test","+0+2");
 
 	canvas.magick("BMP3");
 	canvas.write("wallpaper");

@@ -14,37 +14,44 @@ using namespace Magick;
 using namespace std;
 namespace fs = boost::filesystem;
 
-int main( int argc, char ** argv)
+int wmain( int argc, wchar_t ** argv)
 {
 	fs::path working_dir(fs::absolute(argv[0]).parent_path());
 	// Initialize ImageMagick install location for Windows
 	InitializeMagick(working_dir.string().c_str());
-	wpl::init((working_dir / "wp.db").string().c_str());
+
+	wpl::init(working_dir / L"wp.db");
+	wpl::clear();
 
 	if (argc > 1) 
 	{
+		//wcout << L"argv1 " <<  argv[1] << endl;
 		fs::path dir(argv[1]);
 		if(fs::exists(dir)) {
-			cout << dir.string().c_str() << endl;
-			wpl::add_directory(dir.string().c_str());
+			cout << dir << endl;
+			wpl::add_directory(dir);
 		}
+		
+		wpl::determine_order();
 	}
 	
-	int cur = wpl::get_position();
-	string path(wpl::get_path(++cur));
-	cout << path << endl;
-	wpl::set_position(cur);
-	wpc::setRegistry();
-	try {
-		wpc::convertWP(path.c_str());
-		string wppath( (working_dir / "wallpaper").string() );
-		char* wpcstr = const_cast<char*>(wppath.c_str());
-		wpc::setWP(wpcstr);
-	}
-	catch( exception &error_ )
-	{
-		cout << "Caught exception: " << error_.what() << endl;
-		return 1;
+	while(true) {
+		int cur = wpl::get_position();
+		fs::path path(wpl::get_path(++cur));
+		cout <<   "switch to: " << path << endl;
+		wpl::set_position(cur);
+		wpc::setRegistry();
+		try {
+			wpc::convertWP(path);
+			wstring wppath( (working_dir / "wallpaper").wstring() );
+			wchar_t* wpcstr = const_cast<wchar_t*>(wppath.c_str());
+			wpc::setWP(wpcstr);
+		}
+		catch( exception &error_ )
+		{
+			cout << "Caught exception: " << error_.what() << endl;
+			return 1;
+		}
 	}
 	
 	wpl::close();
@@ -52,12 +59,12 @@ int main( int argc, char ** argv)
 	return 0;
 }
 
-int APIENTRY _tWinMain(HINSTANCE hInstance,
+int APIENTRY wWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPTSTR    lpCmdLine,
                      int       nCmdShow)
 {
-	 return main(__argc,__argv);
+	 return wmain(__argc,__wargv);
 }
 
 

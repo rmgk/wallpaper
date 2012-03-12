@@ -9,6 +9,6 @@
 namespace wpc 
 {
 	bool setRegistry();
-	int setWP(char* wp);
+	int setWP(wchar_t* wp);
 	std::tuple<int,int,int,std::vector<RECT>> getScreens();
 }
