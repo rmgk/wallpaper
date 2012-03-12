@@ -131,7 +131,7 @@ void wpc::annotate(Image& image, const std::string& text, const Geometry& geo)
 }
 
 
-bool wpc::convertWP(const fs::path& src)
+bool wpc::convertWP(const fs::path& src, const fs::path& target)
 {
 	using namespace std;
 
@@ -173,7 +173,7 @@ bool wpc::convertWP(const fs::path& src)
 			wpc::retarget(temp,width[i],height[i],abw);
 			if (i == numScreens - 1)
 			{
-				string text(boost::locale::conv::utf_to_utf<char,wchar_t>(src.filename().wstring()));
+				string text(CW2A(src.filename().wstring().c_str(),CP_UTF8));
 				wpc::annotate(temp,text,"+0+2");
 			}
 			
@@ -202,7 +202,7 @@ bool wpc::convertWP(const fs::path& src)
 	}
 
 	canvas.magick("BMP3");
-	canvas.write("wallpaper");
+	canvas.write(string(CW2A(target.wstring().c_str(),CP_UTF8)));
 
 	return true;
 }

@@ -42,7 +42,7 @@ int wmain( int argc, wchar_t ** argv)
 		wpl::set_position(cur);
 		wpc::setRegistry();
 		try {
-			wpc::convertWP(path);
+			wpc::convertWP(path, working_dir / L"wallpaper");
 			wstring wppath( (working_dir / "wallpaper").wstring() );
 			wchar_t* wpcstr = const_cast<wchar_t*>(wppath.c_str());
 			wpc::setWP(wpcstr);

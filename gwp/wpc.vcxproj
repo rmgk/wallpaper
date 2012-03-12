@@ -37,16 +37,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>D:\wallpaper\gwp;D:\soci\src;D:\soci\src\core;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\include;$(IncludePath)</IncludePath>
+    <IncludePath>D:\wallpaper\gwp;D:\soci\src;D:\soci\src\core;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LibraryPath>D:\soci\build\lib\Release;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>D:\soci\build\lib\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>D:\wallpaper\gwp;D:\soci\src;D:\soci\src\core;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\include;$(IncludePath)</IncludePath>
+    <IncludePath>D:\wallpaper\gwp;D:\soci\src;D:\soci\src\core;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LibraryPath>D:\soci\build\lib\Release;C:\Program Files (x86)\ImageMagick-6.7.0-Q8\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>D:\soci\build\lib\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
