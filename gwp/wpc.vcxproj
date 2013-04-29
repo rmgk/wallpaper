@@ -19,12 +19,14 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -37,16 +39,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>D:\wallpaper\gwp;D:\soci\src;D:\soci\src\core;$(IncludePath)</IncludePath>
+    <IncludePath>D:\wallpaper\gwp;D:\soci\src;D:\soci\src\core;C:\Program Files (x86)\ImageMagick-6.7.9-Q8\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LibraryPath>D:\soci\build\lib\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>D:\wallpaper\gwp;D:\soci\src;D:\soci\src\core;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Program Files (x86)\boost\boost_1_49_0;D:\wallpaper\gwp;D:\soci\src;D:\soci\src\core;C:\Program Files (x86)\ImageMagick-6.7.9-Q8\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LibraryPath>D:\soci\build\lib\Release;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Program Files (x86)\boost\boost_1_49_0\stage\lib;D:\soci\build\lib\Release;C:\Program Files (x86)\ImageMagick-6.7.9-Q8\lib;C:\icu48\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
