@@ -39,16 +39,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>D:\wallpaper\gwp;D:\soci\src;D:\soci\src\core;C:\Program Files (x86)\ImageMagick-6.7.9-Q8\include;$(IncludePath)</IncludePath>
+    <IncludePath>D:\wallpaper\gwp;C:\Program Files (x86)\ImageMagick-6.7.9-Q8\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LibraryPath>D:\soci\build\lib\Release;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Program Files (x86)\ImageMagick-6.7.9-Q8\lib;C:\icu48\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>C:\Program Files (x86)\boost\boost_1_49_0;D:\wallpaper\gwp;D:\soci\src;D:\soci\src\core;C:\Program Files (x86)\ImageMagick-6.7.9-Q8\include;$(IncludePath)</IncludePath>
+    <IncludePath>D:\wallpaper\gwp;C:\Program Files (x86)\ImageMagick-6.7.9-Q8\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LibraryPath>C:\Program Files (x86)\boost\boost_1_49_0\stage\lib;D:\soci\build\lib\Release;C:\Program Files (x86)\ImageMagick-6.7.9-Q8\lib;C:\icu48\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Program Files (x86)\ImageMagick-6.7.9-Q8\lib;C:\icu48\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -60,7 +60,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>icuucd.lib;libsoci_core_3_1.lib;soci_core_3_1.lib;libsoci_sqlite3_3_1.lib;soci_sqlite3_3_1.lib;libsoci_empty_3_1.lib;soci_empty_3_1.lib;CORE_RL_magick_.lib;CORE_RL_Magick++_.lib;X11.lib;odbc32.lib;odbccp32.lib;winmm.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>icuucd.lib;CORE_RL_magick_.lib;CORE_RL_Magick++_.lib;X11.lib;odbc32.lib;odbccp32.lib;winmm.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
@@ -76,24 +76,12 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>icuuc.lib;libsoci_core_3_1.lib;soci_core_3_1.lib;libsoci_sqlite3_3_1.lib;soci_sqlite3_3_1.lib;libsoci_empty_3_1.lib;soci_empty_3_1.lib;CORE_RL_magick_.lib;CORE_RL_Magick++_.lib;X11.lib;odbc32.lib;odbccp32.lib;winmm.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>icuuc.lib;CORE_RL_magick_.lib;CORE_RL_Magick++_.lib;X11.lib;odbc32.lib;odbccp32.lib;winmm.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Environment.h" />
-    <ClInclude Include="polarssl\sha1.h" />
-    <ClInclude Include="sqlite3.h" />
-    <ClInclude Include="Wallpaper.h" />
-    <ClInclude Include="WallpaperList.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Environment.cpp" />
     <ClCompile Include="gwp.cpp" />
-    <ClCompile Include="polarssl\sha1.c" />
-    <ClCompile Include="sqlite3.c" />
-    <ClCompile Include="Wallpaper.cpp" />
-    <ClCompile Include="WallpaperList.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
