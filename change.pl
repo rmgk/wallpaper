@@ -146,7 +146,7 @@ sub rand_wp {
 	my $fav = WallpaperList::get_list('path IS NOT NULL AND sha1 IS NOT NULL AND (' . $INI->{rand_criteria} . ')');
 	warn "nothing matching criteria" and return unless @$fav;
 	my $sel = $fav->[int rand @$fav];
-	say "Selected " . $sel->[0] ." from " . @$fav; 
+	say "Selected " . $sel->[0] ." from " . @$fav;
 	gen_wp($sel->[0],$sel->[1]) or return;
 	say "SAVE CONFIG";
 	$INI->{current} = $sel->[1];
@@ -169,11 +169,11 @@ sub change_wp {
 	}
 
 	say "Change To: $rel_path ($pos)";
-	
+
 	unless (gen_wp($rel_path,$sha)) {
 		return change_wp($mv <=> 0);
 	}
-	
+
 	say "Save Config";
 	$INI->{current} = $sha;
 	$INI->{position} = $pos;
@@ -243,7 +243,7 @@ sub pregenerate_wallpapers {
 }
 
 sub get_data {
-	my $pos = shift; 
+	my $pos = shift;
 	my ($path,$sha,$double) = WallpaperList::get_data($pos);
 	if ($double) {
 		say "$path has same sha as $double";
@@ -254,29 +254,29 @@ sub get_data {
 }
 
 sub adjust_wallpaper {
-	my ($file,$sha) = @_; 
-	
+	my ($file,$sha) = @_;
+
 	#my ($iw,$ih) = Wallpaper::getDimensions();
 
 	my ($rx,$ry) = split(/\D+/,$INI->{resolution});
 
 	my $abw = 1 + $INI->{max_deformation};
-	
+
 	my ($r2x,$r2y) = split(/\D+/,$INI->{resolution2});
-	
+
 	my ($sx,$sy) = split(/\D+/,$INI->{composite_position});
-	
+
 	my ($mx, $my) = split(/\D+/,$INI->{min_resolution});
-	
+
 	my $an1 = "";
-	
+
 	if ($INI->{annotate} ne "none") {
 		my $f = $file;
 		$f =~ s'\\'/'g;
 		$f =~ s#.+/## unless $INI->{annotate} eq "path";
 		$an1 = $f
 	}
-	
+
 	my ($xt, $yt);
 	if ($INI->{resolution_total}) {
 		($xt,$yt) = split(/\D+/,$INI->{resolution_total});
@@ -285,10 +285,10 @@ sub adjust_wallpaper {
 		$xt = $sx + $r2x;
 		$yt = $sy + $r2y;
 	}
-	
+
 	#use Time::HiRes;
 	#my $time =  Time::HiRes::time;
-	
+
 	my $ret = system('gwp.exe',$INI->{wp_path} . $file,"generated/$sha",$rx,$ry,$r2x,$r2y,$mx,$my,$abw,$sx,$sy,$xt,$yt,"pink",$an1,$INI->{anno_offset},'BMP3');
 	#say "system: $ret";
 	#say  Time::HiRes::time - $time;
@@ -300,7 +300,7 @@ sub adjust_wallpaper {
 	#	$INI->{annotate},$INI->{anno_offset} ,
 	#	$INI->{taskbar_offset},
 	#	$INI->{skew});
-	
+
 	#if ($r2x and $r2y) {
 	#	Wallpaper::workWith(1);
 	#	retarget_wallpaper($iw,$ih,$r2x,$r2y,$abw, $file,
@@ -316,7 +316,7 @@ sub retarget_wallpaper {
 	my ($iw, $ih , $rx, $ry ,$abw,$file, $annotate,$anno_off,$off,$skew) = @_;
 	my $iz = $iw/$ih;
 	my $rz = $rx/$ry;
-	
+
 	if (($iz < $rz * $abw) && ($iz > $rz / $abw)) {
 		say sprintf ("\tdeformation IN range (%.2f < %.2f < %.2f) - full screen" , $rz / $abw , $iz , $rz*$abw);
 		Wallpaper::resize($rx,$ry);
@@ -326,14 +326,14 @@ sub retarget_wallpaper {
 		Wallpaper::resizeKeep($rx,$ry);
 		Wallpaper::extend($rx,$ry,$off);
 	}
-	
+
 	for my $s (split (',',$skew)) {
 		next unless $s;
 		my $orientation;
 		($rx,$ry,$orientation) = translate_skew($rx,$ry,$s);
 		Wallpaper::extendBlack(($rx,$ry,$orientation));
 	}
-	
+
 	if ($annotate ne "none") {
 		$file =~ s'\\'/'g;
 		if ($annotate eq "path_multiline") {
@@ -365,7 +365,7 @@ sub translate_skew {
 			$east_west = "East";
 			$rx -= $sx;
 		}
-	}	
+	}
 	if ($sy) {
 		if ($sy > 0) {
 			$north_south = "South";
@@ -390,11 +390,11 @@ sub set_wallpaper {
 sub export {
 	my $export_dir = $INI->{export_path};
 	my $export_criteria = $INI->{export_criteria};
-	
+
 	say "MOVE selected to $export_dir";
 	mkdir $export_dir or die 'could not create folder'.$export_dir.": $!" unless -e $export_dir;
 	my $selected = WallpaperList::get_list($export_criteria);
-	
+
 	foreach (@$selected) {
 		say $_->[0];
 		copy($INI->{wp_path} . $_->[0],$export_dir);
