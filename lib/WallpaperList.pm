@@ -95,10 +95,10 @@ sub set_fav {
 }
 
 #$sha, $vote
-#increases vote amount of $sha by $vote
+#set vote of $sha to $vote
 sub vote {
 	my ($sha,$vote) = @_;
-	$DBH->do("UPDATE OR FAIL wallpaper SET vote = CASE WHEN vote IS NULL THEN ? ELSE vote + ? END WHERE sha1 = ?" , undef , $vote, $vote ,$sha)
+	$DBH->do("UPDATE OR FAIL wallpaper SET vote = ? WHERE sha1 = ?", undef, $vote, $sha)
 		or die 'failed to update vote';
 	$DBH->commit();
 }
@@ -108,6 +108,14 @@ sub vote {
 sub set_nsfw {
 	my $sha = shift;
 	$DBH->do("UPDATE wallpaper SET nsfw = 1 WHERE sha1 = ?", undef, $sha);
+	$DBH->commit();
+}
+
+#$sha
+#sets sketchy for $sha
+sub set_sketchy {
+	my $sha = shift;
+	$DBH->do("UPDATE wallpaper SET nsfw = 0 WHERE sha1 = ?", undef, $sha);
 	$DBH->commit();
 }
 

@@ -24,7 +24,7 @@ foreach (@ARGV) {
 	when('delete') { delete_wp() };
 	when('deleteall') { delete_all() };
 	when('fav') { set_fav() };
-	when('getfav') { getfav() };
+	when('export') { export() };
 	when('nsfw') { set_nsfw() };
 	when('open') { open_wallpaper() };
 	when('pregen') { pregenerate_wallpapers() };
@@ -32,6 +32,7 @@ foreach (@ARGV) {
 	when('rand') { rand_wp() };
 	when('reorder') { reorder_wp(); };
 	when('rescan') { index_wp_path() };
+	when('sketchy') { set_sketchy() };
 	when('stat') { show_wp_stat() };
 	when('teu') { teu() };
 	when('upload') { upload() };
@@ -48,7 +49,7 @@ sub usage {
 	say "\tdelete - move to trash_path";
 	say "\tdeleteall - move all matching delete_all_criteria to trash_path";
 	say "\tfav - set favourite flag";
-	say "\tgetfav - move flagged with fav to fav_path";
+	say "\texport - export selection to export_path";
 	say "\tnsfw - set the nsfw flag";
 	say "\topen - opens the image";
 	say "\tpregen - pregenerates an amount of wallpapers specified by pregen_amount";
@@ -56,11 +57,12 @@ sub usage {
 	say "\trand - select a random wallpaper based on rand_criteria";
 	say "\treorder - recreates the order of the wallpapers according to the order_criteria";
 	say "\trescan - rescans the wp_path for wallpapers";
+	say "\tsketchy - sets the nsfw level to sketchy";
 	say "\tstat - displays statistics for the current image";
 	say "\tteu - search with tineye";
 	say "\tupload - upload to some image hoster and open link";
-	say "\tvoteup - increase vote value by 1 and change to next";
-	say "\tvotedown - decrese vote value by 1 and change to next";
+	say "\tvoteup - vote wallpaper up";
+	say "\tvotedown - vote wallpaper down";
 	say "\t'number' - change wallpaper by that amount";
 }
 
@@ -88,6 +90,11 @@ sub set_fav {
 sub set_nsfw {
 	say "NSFW: " . $INI->{current};
 	WallpaperList::set_nsfw($INI->{current});
+}
+
+sub set_sketchy {
+	say "Sketchy: " . $INI->{current};
+	WallpaperList::set_sketchy($INI->{current});
 }
 
 sub purge {
@@ -380,16 +387,17 @@ sub set_wallpaper {
 	return 1;
 }
 
-sub getfav {
-	my $fav_dir = $INI->{fav_path} ;
+sub export {
+	my $export_dir = $INI->{export_path};
+	my $export_criteria = $INI->{export_criteria};
 	
-	say "MOVE favourites to $fav_dir";
-	mkdir $fav_dir or die 'could not create folder'.$fav_dir.": $!" unless -e $fav_dir;
-	my $fav = WallpaperList::get_list('fav = 1');
+	say "MOVE selected to $export_dir";
+	mkdir $export_dir or die 'could not create folder'.$export_dir.": $!" unless -e $export_dir;
+	my $selected = WallpaperList::get_list($export_criteria);
 	
-	foreach (@$fav) {
+	foreach (@$selected) {
 		say $_->[0];
-		copy($INI->{wp_path} . $_->[0],$fav_dir);
+		copy($INI->{wp_path} . $_->[0],$export_dir);
 	}
 }
 

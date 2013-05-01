@@ -20,7 +20,8 @@ sub readINI {
 	open my $f , $file or die "error opening $file: $!";
 	while (my $line = <$f>) {
 		#ignoring comments and empty lines
-		next if $line =~ /^ \s* ( [ \; | \# ] .* )? $/x;
+		$line =~ s/;.*$//;
+		next if $line =~ /^ \s* $/x;
 		next if length $line == 0;
 		
 		#parting values and stripping whitespace
