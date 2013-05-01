@@ -290,7 +290,7 @@ sub adjust_wallpaper {
 	#my $time =  Time::HiRes::time;
 
 	# my $ret = system('gwp.exe',$INI->{wp_path} . $file,"generated/$sha",$rx,$ry,$r2x,$r2y,$mx,$my,$abw,$sx,$sy,$xt,$yt,"pink",$an1,$INI->{anno_offset},'BMP3');
-	my $ret = system('gwp.exe', ':convert', $INI->{wp_path} . $file, "generated/$sha");
+	my $ret = system('wpt.exe', ':convert', $INI->{wp_path} . $file, "generated/$sha");
 
 	#say "system: $ret";
 	#say  Time::HiRes::time - $time;
