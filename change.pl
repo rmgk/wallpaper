@@ -8,8 +8,23 @@ use WallpaperList;
 use WPConfig;
 use Cwd qw(abs_path);
 use File::Copy;
+use Time::HiRes;
 
-say "Initialise";
+my $TIME = Time::HiRes::time;
+my $START_TIME = $TIME;
+
+sub timing {
+	my $ct = Time::HiRes::time;
+	my $ret = sprintf "(%.3f | %.3f)", $ct - $TIME, $ct - $START_TIME;
+	$TIME = $ct;
+	return $ret;
+}
+
+sub say_timed {
+	say @_, " ", timing
+}
+
+say_timed "Initialise";
 my $INI = WPConfig::load() or die "could not load config";
 WallpaperList::init($INI->{db_path},$INI->{wp_path});
 
@@ -42,6 +57,7 @@ foreach (@ARGV) {
 }
 
 cleanup_generated_wallpapers();
+say_timed "Done";
 
 sub usage {
 	say "\nThe following commandline options are available:\n";
@@ -66,16 +82,16 @@ sub usage {
 }
 
 sub index_wp_path {
-	say "Indexing wp_path";
+	say "Indexing wp_path ";
 	WallpaperList::add_folder($INI->{wp_path});
-	say "Adding Random Order";
+	say_timed "Adding Random Order", ;
 	WallpaperList::determine_order("position IS NULL AND vote IS NULL");
 }
 
 sub reorder_wp {
-	say "removing old order";
+	say_timed "removing old order";
 	WallpaperList::remove_order();
-	say "creating new order";
+	say_timed "creating new order";
 	WallpaperList::determine_order($INI->{order_criteria});
 	$INI->{position} = 1;
 	WPConfig::save();
@@ -141,13 +157,13 @@ sub vote {
 }
 
 sub rand_wp {
-	say "Select Random";
+	say_timed "Select Random";
 	my $fav = WallpaperList::get_list('path IS NOT NULL AND sha1 IS NOT NULL AND (' . $INI->{rand_criteria} . ')', "ORDER BY RANDOM() LIMIT 1");
 	warn "nothing matching criteria" and return unless @$fav;
 	my $sel = $fav->[0];
-	say "Selected " . $sel->[0] ." from " . @$fav;
+	say_timed "Selected " . $sel->[0] ." from " . @$fav;
 	gen_wp($sel->[0],$sel->[1], 'set') or return;
-	say "SAVE CONFIG";
+	say_timed "SAVE CONFIG";
 	$INI->{current} = $sel->[1];
 	WPConfig::save();
 	# set_wallpaper($sel->[1]);
@@ -166,13 +182,14 @@ sub change_wp {
 		$pos += $mv <=> 0;
 	}
 
-	say "Change To: $rel_path ($pos)";
+	say_timed "Change To:";
+	say "\t$rel_path ($pos)";
 
 	unless (gen_wp($rel_path,$sha)) {
 		return change_wp($mv <=> 0);
 	}
 
-	say "Save Config";
+	say_timed "Save Config";
 	$INI->{current} = $sha;
 	$INI->{position} = $pos;
 	WPConfig::save();
@@ -185,7 +202,8 @@ sub gen_wp {
 	my $path = $INI->{wp_path} . $rel_path;
 	mkdir $INI->{gen_path} or die 'could not create folder'.$INI->{gen_path} .": $!" unless -e $INI->{gen_path};
 	if (! -e $INI->{gen_path}  . $sha ) {
-		say "Processing: \n\t$rel_path";
+		say_timed "Processing:";
+		say "\t$rel_path";
 		unless (-e $path) {
 			say "\t$path does not exist, deleting from db" ;
 			WallpaperList::delete($sha);
@@ -214,7 +232,7 @@ sub gen_wp {
 }
 
 sub cleanup_generated_wallpapers {
-	say "Cleanup";
+	say_timed "Cleanup";
 	opendir(my $dh, $INI->{gen_path}) or return;
 	my @dir = grep {-f $INI->{gen_path}.$_ and $_ =~ /^\w+$/ and $_ ne $INI->{current}} readdir($dh);
 	closedir $dh;
@@ -229,7 +247,7 @@ sub cleanup_generated_wallpapers {
 sub pregenerate_wallpapers {
 	lock_check('pregen') or return;
 	lock_set('pregen');
-	say "Pregenerating";
+	say_timed "Pregenerating";
  	my $count = $INI->{pregen_amount};
 	my $pos = $INI->{position};
 	while($count--) {
@@ -382,7 +400,7 @@ sub translate_skew {
 
 sub set_wallpaper {
 	my $wp = shift;
-	say "set wallpaper $wp";
+	say_timed "Set Wallpaper $wp";
 	# Wallpaper::setWallpaper($INI->{gen_path} . $wp);
 	system('wpt.exe', ':set', $INI->{gen_path} . $wp);
 	return 1;
@@ -421,7 +439,7 @@ sub teu {
 sub open_wallpaper {
 	my $sha = $INI->{current};
 	my $path = WallpaperList::get_path($sha);
-	say "Calling system";
+	say_timed "Calling system";
 	system($INI->{wp_path} . $path );
 }
 
