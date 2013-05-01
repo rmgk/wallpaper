@@ -81,7 +81,7 @@ sub delete {
 #removes the position of $sha
 sub remove_position {
 	my ($sha) = shift;
-	my $position = $DBH->selectrow_array("SELECT position FROM wallpaper WHERE sha1 = ?",undef,$sha);
+	# my $position = $DBH->selectrow_array("SELECT position FROM wallpaper WHERE sha1 = ?",undef,$sha);
 	$DBH->do("UPDATE wallpaper SET position = - _rowid_ WHERE sha1 = ?", undef, $sha);
 	$DBH->commit();
 }
