@@ -118,10 +118,10 @@ int wmain( int argc, wchar_t ** argv)
 	return 0;
 }
 
-int APIENTRY wWinMain(HINSTANCE hInstance,
-                     HINSTANCE hPrevInstance,
-                     LPTSTR    lpCmdLine,
-                     int       nCmdShow)
+int APIENTRY wWinMain(HINSTANCE /*hInstance*/,
+                     HINSTANCE /*hPrevInstance*/,
+                     LPTSTR    /*lpCmdLine*/,
+                     int       /*nCmdShow*/)
 {
 	 return wmain(__argc,__wargv);
 }
@@ -283,8 +283,8 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
       topmost_coordinate = screens[i].top;
 		// std::cout << "screen " << i << "\n width: " << width[i] << " height: " << height[i] << "\n x: " << screens[i].left << " y: " << screens[i].top << endl;
 	}
-	int min_accepted_width = accumulate(width.begin(),width.end(),0) / numScreens / 2;
-	int min_accepted_height = accumulate(height.begin(),height.end(),0) / numScreens / 2;
+	size_t min_accepted_width = accumulate(width.begin(),width.end(),0) / numScreens / 2;
+	size_t min_accepted_height = accumulate(height.begin(),height.end(),0) / numScreens / 2;
 
 	string utf8_path(CW2A(src.c_str(),CP_UTF8));
 
@@ -371,7 +371,7 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
 }
 
 bool wpc::similarAspect(int ox, int oy, int tx, int ty) {
-  float abw = 1.2;
+  float abw = 1.2f;
 	float iz = (float)ox / (float)oy;
 	float tz = (float)tx / (float)ty;
 	return ((iz < tz * abw) && (iz > tz / abw));
@@ -453,8 +453,8 @@ int wpc::setWP(wchar_t* wp)
 
 BOOL CALLBACK MonitorEnumProc(
   __in  HMONITOR hMonitor,
-  __in  HDC hdcMonitor,
-  __in  LPRECT lprcMonitor,
+  __in  HDC /*hdcMonitor*/,
+  __in  LPRECT /*lprcMonitor*/,
   __in  LPARAM dwData
 ) 
 {
@@ -490,7 +490,7 @@ wpc::screenInfo wpc::getScreens()
 
 bool wpc::isWin8orLater() {
     OSVERSIONINFO osvi;
-    BOOL bIsWin8orLater;
+    bool bIsWin8orLater;
 
     ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
     osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
