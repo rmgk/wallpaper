@@ -136,8 +136,8 @@ sub max_pos {
 #$criteria -> \@[$path,$sha]
 #takes a sql string of criteria and returns a list of paths and shas
 sub get_list {
-	my $criteria = shift;
-	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE ($criteria)");
+	my ($criteria, $additional_clauses) = @_;
+	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE ($criteria) " . ($additional_clauses // ""));
 }
 
 #$sha -> \%{column => value}

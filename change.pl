@@ -5,7 +5,6 @@ use warnings;
 use lib "./lib";
 
 use WallpaperList;
-use Wallpaper;
 use WPConfig;
 use Cwd qw(abs_path);
 use File::Copy;
@@ -143,16 +142,15 @@ sub vote {
 
 sub rand_wp {
 	say "Select Random";
-	my $fav = WallpaperList::get_list('path IS NOT NULL AND sha1 IS NOT NULL AND (' . $INI->{rand_criteria} . ')');
+	my $fav = WallpaperList::get_list('path IS NOT NULL AND sha1 IS NOT NULL AND (' . $INI->{rand_criteria} . ')', "ORDER BY RANDOM() LIMIT 1");
 	warn "nothing matching criteria" and return unless @$fav;
-	my $sel = $fav->[int rand @$fav];
+	my $sel = $fav->[0];
 	say "Selected " . $sel->[0] ." from " . @$fav;
-	gen_wp($sel->[0],$sel->[1]) or return;
+	gen_wp($sel->[0],$sel->[1], 'set') or return;
 	say "SAVE CONFIG";
 	$INI->{current} = $sel->[1];
 	WPConfig::save();
-	set_wallpaper($sel->[1]);
-
+	# set_wallpaper($sel->[1]);
 }
 
 sub change_wp {
@@ -183,7 +181,7 @@ sub change_wp {
 }
 
 sub gen_wp {
-	my ($rel_path,$sha) = @_;
+	my ($rel_path,$sha,$set_wp) = @_;
 	my $path = $INI->{wp_path} . $rel_path;
 	mkdir $INI->{gen_path} or die 'could not create folder'.$INI->{gen_path} .": $!" unless -e $INI->{gen_path};
 	if (! -e $INI->{gen_path}  . $sha ) {
@@ -203,7 +201,7 @@ sub gen_wp {
 		#	WallpaperList::remove_position($sha);
 		#	return;
 		#}
-		if (adjust_wallpaper($rel_path,$sha)) { #returns true on failure
+		if (adjust_wallpaper($rel_path,$sha,$set_wp)) { #returns true on failure
 			say "\twallpaper failed checks, removing from rotation";
 			WallpaperList::vote($sha,-10000);
 			WallpaperList::remove_position($sha);
@@ -254,7 +252,7 @@ sub get_data {
 }
 
 sub adjust_wallpaper {
-	my ($file,$sha) = @_;
+	my ($file,$sha,$set_wp) = @_;
 
 	#my ($iw,$ih) = Wallpaper::getDimensions();
 
@@ -290,7 +288,7 @@ sub adjust_wallpaper {
 	#my $time =  Time::HiRes::time;
 
 	# my $ret = system('gwp.exe',$INI->{wp_path} . $file,"generated/$sha",$rx,$ry,$r2x,$r2y,$mx,$my,$abw,$sx,$sy,$xt,$yt,"pink",$an1,$INI->{anno_offset},'BMP3');
-	my $ret = system('wpt.exe', ':convert', $INI->{wp_path} . $file, "generated/$sha");
+	my $ret = system('wpt.exe', ':convert' . ($set_wp?'set':''), $INI->{wp_path} . $file, "generated/$sha");
 
 	#say "system: $ret";
 	#say  Time::HiRes::time - $time;
@@ -314,44 +312,44 @@ sub adjust_wallpaper {
 	#}
 }
 
-sub retarget_wallpaper {
-	my ($iw, $ih , $rx, $ry ,$abw,$file, $annotate,$anno_off,$off,$skew) = @_;
-	my $iz = $iw/$ih;
-	my $rz = $rx/$ry;
+# sub retarget_wallpaper {
+# 	my ($iw, $ih , $rx, $ry ,$abw,$file, $annotate,$anno_off,$off,$skew) = @_;
+# 	my $iz = $iw/$ih;
+# 	my $rz = $rx/$ry;
 
-	if (($iz < $rz * $abw) && ($iz > $rz / $abw)) {
-		say sprintf ("\tdeformation IN range (%.2f < %.2f < %.2f) - full screen" , $rz / $abw , $iz , $rz*$abw);
-		Wallpaper::resize($rx,$ry);
-	}
-	else {
-		say sprintf ("\tdeformation OUT of range (%.2f < %.2f < %.2f) - keeping ratio",$rz /$abw , $iz , $rz*$abw);
-		Wallpaper::resizeKeep($rx,$ry);
-		Wallpaper::extend($rx,$ry,$off);
-	}
+# 	if (($iz < $rz * $abw) && ($iz > $rz / $abw)) {
+# 		say sprintf ("\tdeformation IN range (%.2f < %.2f < %.2f) - full screen" , $rz / $abw , $iz , $rz*$abw);
+# 		Wallpaper::resize($rx,$ry);
+# 	}
+# 	else {
+# 		say sprintf ("\tdeformation OUT of range (%.2f < %.2f < %.2f) - keeping ratio",$rz /$abw , $iz , $rz*$abw);
+# 		Wallpaper::resizeKeep($rx,$ry);
+# 		Wallpaper::extend($rx,$ry,$off);
+# 	}
 
-	for my $s (split (',',$skew)) {
-		next unless $s;
-		my $orientation;
-		($rx,$ry,$orientation) = translate_skew($rx,$ry,$s);
-		Wallpaper::extendBlack(($rx,$ry,$orientation));
-	}
+# 	for my $s (split (',',$skew)) {
+# 		next unless $s;
+# 		my $orientation;
+# 		($rx,$ry,$orientation) = translate_skew($rx,$ry,$s);
+# 		Wallpaper::extendBlack(($rx,$ry,$orientation));
+# 	}
 
-	if ($annotate ne "none") {
-		$file =~ s'\\'/'g;
-		if ($annotate eq "path_multiline") {
-			my @filename = reverse split m'/', $file;
-			my $off = $INI->{anno_offset};
-			for (@filename) {
-				Wallpaper::annotate($_,$off);
-				$off += 16
-			}
-		}
-		else {
-			$file =~ s#.+/## unless $annotate eq "path";
-			Wallpaper::annotate($file,$anno_off);
-		}
-	}
-}
+# 	if ($annotate ne "none") {
+# 		$file =~ s'\\'/'g;
+# 		if ($annotate eq "path_multiline") {
+# 			my @filename = reverse split m'/', $file;
+# 			my $off = $INI->{anno_offset};
+# 			for (@filename) {
+# 				Wallpaper::annotate($_,$off);
+# 				$off += 16
+# 			}
+# 		}
+# 		else {
+# 			$file =~ s#.+/## unless $annotate eq "path";
+# 			Wallpaper::annotate($file,$anno_off);
+# 		}
+# 	}
+# }
 
 sub translate_skew {
 	my ($rx,$ry, $skew ) = @_;
@@ -384,8 +382,9 @@ sub translate_skew {
 
 sub set_wallpaper {
 	my $wp = shift;
-	say "Call API to set wallpaper $wp";
-	Wallpaper::setWallpaper($INI->{gen_path} . $wp);
+	say "set wallpaper $wp";
+	# Wallpaper::setWallpaper($INI->{gen_path} . $wp);
+	system('wpt.exe', ':set', $INI->{gen_path} . $wp);
 	return 1;
 }
 
