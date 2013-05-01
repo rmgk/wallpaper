@@ -35,9 +35,18 @@ namespace wpc
 
 
   // environment 
+
+  struct screenInfo {
+    int count;
+    int virtual_x;
+    int virtual_y;
+    vector<RECT> areas;
+    vector<RECT> working_areas;
+  };
+
   bool setRegistry();
 	int setWP(wchar_t* wp);
-	std::tuple<int,int,int,std::vector<RECT>> getScreens();
+	screenInfo getScreens();
   bool isWin8orLater();
 };
 
@@ -255,12 +264,12 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
 	using namespace std;
 
 	auto env = getScreens();
-	int numScreens = get<0>(env);
-	auto screens = get<3>(env);
+	int numScreens = env.count;
+	auto screens = env.areas;
 	vector<int> width;
 	vector<int> height;
-	int width_total = get<1>(env);
-	int height_total = get<2>(env);
+	int width_total = env.virtual_x;
+	int height_total = env.virtual_y;
   int leftmost_coordinate = 0;
   int topmost_coordinate = 0;
 	// std::cout << "number of screens: " << numScreens << "\n total width: " << width_total << " total height: " << height_total << std::endl;
@@ -274,8 +283,8 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
       topmost_coordinate = screens[i].top;
 		// std::cout << "screen " << i << "\n width: " << width[i] << " height: " << height[i] << "\n x: " << screens[i].left << " y: " << screens[i].top << endl;
 	}
-	int min_accepted_width = accumulate(width.begin(),width.end(),0) / get<0>(env) / 2;
-	int min_accepted_height = accumulate(height.begin(),height.end(),0) / get<0>(env) / 2;
+	int min_accepted_width = accumulate(width.begin(),width.end(),0) / numScreens / 2;
+	int min_accepted_height = accumulate(height.begin(),height.end(),0) / numScreens / 2;
 
 	string utf8_path(CW2A(src.c_str(),CP_UTF8));
 
@@ -296,8 +305,9 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
   // first case tries to handle multi monitor images … experimental!
   if (similarAspect(orig.columns(), orig.rows(), width_total, height_total) && win8) {
     wpc::retarget(orig, width_total, height_total);
-    const auto& ls = screens[numScreens - 1];
-		wpc::annotate(orig,annotation,Geometry(ls.right - leftmost_coordinate,ls.bottom - topmost_coordinate,1,3,false,false));
+    const auto& ls = env.working_areas[numScreens - 1];
+    auto geo = Geometry(ls.right - leftmost_coordinate,ls.bottom - topmost_coordinate,1,3);
+		wpc::annotate(orig,annotation,geo);
 		canvas = orig;
   }
 	else if (numScreens > 1) {
@@ -307,8 +317,12 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
 		{
 			Image temp(orig);
 			wpc::retarget(temp,width[i],height[i]);
-			if (i == numScreens - 1)
-				wpc::annotate(temp,annotation,"+1+3");
+			if (i == numScreens - 1) {
+        const auto& area = env.areas[i];
+        const auto& warea = env.working_areas[i];
+        auto geo = Geometry(0,0,area.right - warea.right + 1, area.bottom - warea.bottom + 3);
+				wpc::annotate(temp,annotation,geo);
+      }
 		
 			int x = screens[i].left;
 			int y = screens[i].top;
@@ -343,7 +357,10 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
 	}
 	else {
 		wpc::retarget(orig,width[0],height[0]);
-		wpc::annotate(orig,annotation,"+1+3");
+    const auto& area = env.areas[0];
+    const auto& warea = env.working_areas[0];
+    auto geo = Geometry(0,0,area.right - warea.right + 1, area.bottom - warea.bottom + 3);
+		wpc::annotate(orig,annotation,geo);
 		canvas = orig;
 	}
 
@@ -441,20 +458,27 @@ BOOL CALLBACK MonitorEnumProc(
   __in  LPARAM dwData
 ) 
 {
-	auto rect = (std::vector<RECT> *)dwData;
-	rect->push_back(*lprcMonitor);
+	auto rect = (wpc::screenInfo *)dwData;
+  MONITORINFO mi;
+  mi.cbSize = sizeof(MONITORINFO);
+  GetMonitorInfo(hMonitor, &mi); 
+  rect->areas.push_back(mi.rcMonitor);
+  rect->working_areas.push_back(mi.rcWork);
 	return TRUE;
 }
 
-std::tuple<int,int,int,std::vector<RECT>> wpc::getScreens() 
+wpc::screenInfo wpc::getScreens() 
 {
 	using namespace std;
-	tuple<int,int,int,vector<RECT>> result;
-	get<0>(result) = GetSystemMetrics(SM_CMONITORS);
-	get<1>(result) = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-	get<2>(result) = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+	screenInfo result;
+  result.count = GetSystemMetrics(SM_CMONITORS);
+	result.virtual_x = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+	result.virtual_y = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+  result.areas.reserve(result.count);
+  result.working_areas.reserve(result.count);
 
-	EnumDisplayMonitors(NULL,NULL,MonitorEnumProc,(LPARAM)&get<3>(result));
+
+	EnumDisplayMonitors(NULL,NULL,MonitorEnumProc,(LPARAM)&result);
 
 	/*for (auto it = get<3>(result).begin(); it != get<3>(result).end(); ++it) 
 	{
