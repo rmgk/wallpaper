@@ -41,18 +41,19 @@ for $i = 1 to UBound($key) - 1
 next 
 
 $state = _GetJoy($joy,0)
+
 ;main loop
 while 1
 	$last_state = $state
     $state = _GetJoy($joy,0)
 	for $i = 1 to UBound($button) - 1
-		if button($button[$i][0]) then run($button[$i][1])
+		if button($button[$i][0]) then dispatch($button[$i][1])
 	next 
 	for $i = 1 to UBound($pov) - 1
-		if pov($pov[$i][0]) then run($pov[$i][1])
+		if pov($pov[$i][0]) then dispatch($pov[$i][1])
 	next 
 	for $i = 1 to UBound($axis) - 1
-		if axis($axis[$i][0]) then run($axis[$i][1])
+		if axis($axis[$i][0]) then dispatch($axis[$i][1])
 	next 
 	sleep(10)
 	if $hotkeytimeout > 0 then
@@ -64,9 +65,17 @@ while 1
 	endif
 WEnd
 
+Func dispatch($command)
+	if $command = ($exepath & "wait") then
+		ProcessWaitClose(WinGetProcess(""))
+	else
+		Run($command)
+	endif
+EndFunc
+
 Func hotkeyPressed()
 	for $i = 1 to UBound($key) - 1
-		if @HotKeyPressed = $key[$i][0] then run($key[$i][1] )
+		if @HotKeyPressed = $key[$i][0] then dispatch($key[$i][1] )
 	next 
 	$hotkeytimeout = 2000
 EndFunc
