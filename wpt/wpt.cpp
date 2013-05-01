@@ -20,51 +20,85 @@ const DWORD filenameBufferLength = 1024;
 
 namespace wpc
 {
+
+  wstring make_absolute(const std::wstring& path);
+
+
+  // image manipulation
 	void annotate(Magick::Image& image, const std::string& text, const Magick::Geometry& geo);
-	void retarget(Magick::Image& image, int x, int y, double abw);
+	void retarget(Magick::Image& image, int x, int y);
 	bool convertWP(const std::wstring& src, const std::wstring& target);
 
 	void frame(Magick::Image& image,int x, int y);
 	Magick::Color getBorderColor(Magick::Image& image, Magick::GravityType border);
+  bool similarAspect(int ox, int oy, int tx, int ty);
 
 
   // environment 
   bool setRegistry();
 	int setWP(wchar_t* wp);
 	std::tuple<int,int,int,std::vector<RECT>> getScreens();
+  bool isWin8orLater();
 };
 
 
-wstring make_absolute(const std::wstring& path) {
+wstring wpc::make_absolute(const std::wstring& path) {
   wchar_t buf[filenameBufferLength];
   GetFullPathName(path.c_str(),filenameBufferLength,buf,NULL);
   return wstring(buf);
 }
 
-void change_wp(const std::wstring& path)
-{
-  wstring out = make_absolute(L"wallpaper");
-  wstring in = make_absolute(path);
-	if (!wpc::convertWP(in, out))
-	{
-    throw exception("failed to convert wp");
-	}
-	wpc::setWP(&*out.begin());
-}
-
 int wmain( int argc, wchar_t ** argv)
 {
 	try {
-		wstring working_dir = make_absolute(argv[0]);
+		wstring working_dir = wpc::make_absolute(argv[0]);
 		// Initialize ImageMagick install location for Windows
 		InitializeMagick(CW2A(working_dir.c_str(),CP_UTF8));
-
 		wpc::setRegistry();
 
-		wstring file(argv[1]);
-
-    change_wp(file);
-
+    wstring infile;
+    wstring outfile = wpc::make_absolute(L"wallpaper");
+    
+    if (argc == 1) {
+      cout << L"<path>" << endl;
+      return -1;
+    }
+    else if (argc == 2) {
+      infile = wpc::make_absolute(argv[1]);
+      wpc::convertWP(infile, outfile);
+      wpc::setWP(&*outfile.begin());
+      infile[0];
+    }
+    else {
+      wstring command(argv[1]);
+      if (command == L":convert") {
+        if (argc < 4) {
+          cout << L"<inpath> <outpath>" << endl;
+          return -1;
+        }
+        infile = wpc::make_absolute(argv[2]);
+        outfile = wpc::make_absolute(argv[3]);
+        wpc::convertWP(infile,outfile);
+      }
+      else if (command == L":convertset") {
+        if (argc < 4) {
+          cout << L"<inpath> <outpath>" << endl;
+          return -1;
+        }
+        infile = wpc::make_absolute(argv[2]);
+        outfile = wpc::make_absolute(argv[3]);
+        wpc::convertWP(infile,outfile);
+        wpc::setWP(&*outfile.begin());
+      }
+      else if (command == L":set") {
+        if (argc < 3) {
+          cout << L"<outpath>" << endl;
+          return -1;
+        }
+        outfile = wpc::make_absolute(argv[2]);
+        wpc::setWP(&*outfile.begin());
+      }
+    }
 
 	}
 	catch( exception &error_ )
@@ -184,11 +218,9 @@ void wpc::frame(Image& image,int x, int y)
 	}
 }
 
-void wpc::retarget(Image& image, int x, int y, double abw)
+void wpc::retarget(Image& image, int x, int y)
 {
-	float iz = (float)image.columns() / (float)image.rows();
-	float tz = (float)x/(float)y;
-	if ((iz < tz * abw) && (iz > tz / abw)) {
+	if (similarAspect(image.columns(), image.rows(), x, y)) {
 		Geometry geo(x,y);
 		geo.aspect(true);
 		image.resize(geo);
@@ -229,41 +261,55 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
 	vector<int> height;
 	int width_total = get<1>(env);
 	int height_total = get<2>(env);
-	//std::cout << "number of screens: " << numScreens << "\n total width: " << width_total << " total height: " << height_total << std::endl;
+  int leftmost_coordinate = 0;
+  int topmost_coordinate = 0;
+	// std::cout << "number of screens: " << numScreens << "\n total width: " << width_total << " total height: " << height_total << std::endl;
 	for (int i = 0; i < numScreens; ++i)
 	{
 		width.push_back(screens[i].right - screens[i].left);
 		height.push_back(screens[i].bottom - screens[i].top);
-		//std::cout << "screen " << i << "\n width: " << width[i] << " height: " << height[i] << "\n x: " << screens[i].left << " y: " << screens[i].top << endl;
+    if (screens[i].left < leftmost_coordinate) 
+      leftmost_coordinate = screens[i].left;
+    if (screens[i].top < topmost_coordinate) 
+      topmost_coordinate = screens[i].top;
+		// std::cout << "screen " << i << "\n width: " << width[i] << " height: " << height[i] << "\n x: " << screens[i].left << " y: " << screens[i].top << endl;
 	}
-	int min_width = accumulate(width.begin(),width.end(),0) / get<0>(env) / 2;
-	int min_height = accumulate(height.begin(),height.end(),0) / get<0>(env) / 2;
-	double abw = 1.2;
+	int min_accepted_width = accumulate(width.begin(),width.end(),0) / get<0>(env) / 2;
+	int min_accepted_height = accumulate(height.begin(),height.end(),0) / get<0>(env) / 2;
 
-	//string utf8_path(boost::locale::conv::utf_to_utf<char,wchar_t>(src.wstring()));
 	string utf8_path(CW2A(src.c_str(),CP_UTF8));
 
 	Image orig( utf8_path );
 	//discard small images
-	if(orig.rows() < min_height || orig.columns() < min_width)
+	if(orig.rows() < min_accepted_height || orig.columns() < min_accepted_width)
 		return false;
 	//add white background for transparent images
 	orig.extent(Geometry(orig.columns(),orig.rows()),"white");
 
+  // std::cout << "leftmost: " << leftmost_coordinate << endl;
+  // std::cout << "topmost: " << topmost_coordinate << endl;
+
+  string annotation(CW2A(src.c_str(),CP_UTF8));
+
+  bool win8 = isWin8orLater();
 	Image canvas;
-	if (numScreens > 1) {
+  // first case tries to handle multi monitor images … experimental!
+  if (similarAspect(orig.columns(), orig.rows(), width_total, height_total) && win8) {
+    wpc::retarget(orig, width_total, height_total);
+    const auto& ls = screens[numScreens - 1];
+		wpc::annotate(orig,annotation,Geometry(ls.right - leftmost_coordinate,ls.bottom - topmost_coordinate,1,3,false,false));
+		canvas = orig;
+  }
+	else if (numScreens > 1) {
 		canvas.backgroundColor("pink");
 		canvas.extent(Geometry(width_total,height_total));
 		for (int i = 0; i < numScreens; ++i)
 		{
 			Image temp(orig);
-			wpc::retarget(temp,width[i],height[i],abw);
+			wpc::retarget(temp,width[i],height[i]);
 			if (i == numScreens - 1)
-			{
-				string text(CW2A(src.c_str(),CP_UTF8));
-				wpc::annotate(temp,text,"+0+2");
-			}
-			
+				wpc::annotate(temp,annotation,"+1+3");
+		
 			int x = screens[i].left;
 			int y = screens[i].top;
 			/* when in tiling wallpaper mode, the origin is at the upper left corner of the
@@ -272,19 +318,32 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
 			 * gives the correct position but that may cause the image to overflow. 
 			 * if it overflows it needs to be drawn again at the original position which
 			 * causes the oveflown part to be drawn at the correct position.
+       * 
+       * this is no longer true for winndows 8
 			 */
-			if (x < 0) x += width_total;
-			if (y < 0) y += height_total;
-			canvas.composite(temp,x,y);
-			if (x + width[i] > width_total)
-				canvas.composite(temp,x-width_total,y);
-			if (y + height[i] > height_total)
-				canvas.composite(temp,x,y-height_total);
+      if (!win8) {
+			  if (x < 0) x += width_total;
+			  if (y < 0) y += height_total;
+			  canvas.composite(temp,x,y);
+			  if (x + width[i] > width_total)
+				  canvas.composite(temp,x-width_total,y);
+			  if (y + height[i] > height_total)
+				  canvas.composite(temp,x,y-height_total);
+      }
+      /* win8 has the origin of the wallpaper at the upper left edge of the total virtual space.
+       * but the screen coordinates still have the origin at the upper left edge of the primary monitor.
+       * thus we subtract the leftmost and topmost coordinates any screen has from the x and y coordinates,
+       * to get the correct positions. be aware that these are negative
+       */ 
+      else {
+        canvas.composite(temp, x - leftmost_coordinate, y - topmost_coordinate);
+      }
 		}
 			
 	}
 	else {
-		wpc::retarget(orig,width[0],height[0],abw);
+		wpc::retarget(orig,width[0],height[0]);
+		wpc::annotate(orig,annotation,"+1+3");
 		canvas = orig;
 	}
 
@@ -292,6 +351,13 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
 	canvas.write(string(CW2A(target.c_str(),CP_UTF8)));
 
 	return true;
+}
+
+bool wpc::similarAspect(int ox, int oy, int tx, int ty) {
+  float abw = 1.2;
+	float iz = (float)ox / (float)oy;
+	float tz = (float)tx / (float)ty;
+	return ((iz < tz * abw) && (iz > tz / abw));
 }
 
 
@@ -318,7 +384,7 @@ bool wpc::setRegistry()
 											//m_SUBKEY_WALLPAPER( TEXT("Wallpaper") ),
 
 
-	if(RegCreateKeyExW(	HKEY_CURRENT_USER, 
+	if(RegCreateKeyEx(	HKEY_CURRENT_USER, 
 									L"Control Panel\\Desktop", 
 									0, 
 									NULL, 
@@ -335,12 +401,12 @@ bool wpc::setRegistry()
 		this will activate tiling which is used to display different parts of the 
 		image on different monitors
 	*********************************************************************************/
-	if(RegSetValueExW(	hKey,
+	if(RegSetValueEx(	hKey,
 										L"TileWallpaper",
 										0,
 										REG_SZ,
-										(CONST BYTE *)L"1",
-										2) != ERROR_SUCCESS) return false;
+										(CONST BYTE *)L"1", //"1" activates tiling
+										3) != ERROR_SUCCESS) return false;
 	
 
 
@@ -349,12 +415,12 @@ bool wpc::setRegistry()
 		Value name :"WallpaperStyle"
 		this will position the wallpaper
 	**********************************************************************************/
-	if(RegSetValueExW(	hKey,
+	if(RegSetValueEx(	hKey,
 										L"WallpaperStyle",
 										0,
 										REG_SZ,
-										(CONST BYTE *)L"0",
-										2) != ERROR_SUCCESS) return false;
+										(CONST BYTE *)L"0", // "22" displays „spanning“
+										3) != ERROR_SUCCESS) return false;
 		
 	RegCloseKey(hKey);
 
@@ -395,4 +461,21 @@ std::tuple<int,int,int,std::vector<RECT>> wpc::getScreens()
 		cout << it->left << " " << it->top << " " << it->right << " " << it->bottom << endl;
 	}*/
 	return result;
+}
+
+
+bool wpc::isWin8orLater() {
+    OSVERSIONINFO osvi;
+    BOOL bIsWin8orLater;
+
+    ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
+    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+
+    GetVersionEx(&osvi);
+
+    bIsWin8orLater = 
+       ( (osvi.dwMajorVersion > 6) ||
+       ( (osvi.dwMajorVersion == 6) && (osvi.dwMinorVersion >= 2) ));
+
+    return bIsWin8orLater;
 }
