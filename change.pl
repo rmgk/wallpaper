@@ -119,7 +119,9 @@ sub purge {
 
 sub show_wp_stat {
 	my $stat = WallpaperList::get_stat($INI->{current});
+	my $max_pos = WallpaperList::max_pos();
 	say "STATS: ";
+	say "\tlast position: ", $max_pos;
 	foreach (keys %$stat) {
 		say "\t$_: " . (defined $stat->{$_} ? $stat->{$_} : "undef");
 	}
