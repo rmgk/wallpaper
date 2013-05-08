@@ -412,7 +412,7 @@ sub export {
 	my $export_dir = $INI->{export_path};
 	my $export_criteria = $INI->{export_criteria};
 
-	say "MOVE selected to $export_dir";
+	say "copy selected to $export_dir";
 	mkdir $export_dir or die 'could not create folder'.$export_dir.": $!" unless -e $export_dir;
 	my $selected = WallpaperList::get_list($export_criteria);
 
