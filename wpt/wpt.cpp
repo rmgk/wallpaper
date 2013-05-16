@@ -10,6 +10,10 @@
 #include <tuple>
 #include <vector>
 #include <Windows.h>
+#include <conio.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <io.h>
 
 using namespace Magick;
 using namespace std;
@@ -121,6 +125,38 @@ int APIENTRY wWinMain(HINSTANCE /*hInstance*/,
                      LPTSTR    /*lpCmdLine*/,
                      int       /*nCmdShow*/)
 {
+
+  int hConHandle;
+  long lStdHandle;
+  FILE *fp;
+  int iVar;
+
+  // Try to attach to a console
+  if (AttachConsole (ATTACH_PARENT_PROCESS)) {
+
+    // redirect unbuffered STDOUT to the console
+    lStdHandle = (long)GetStdHandle(STD_OUTPUT_HANDLE);
+    hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+    fp = _fdopen( hConHandle, "w" );
+    *stdout = *fp;
+    setvbuf( stdout, NULL, _IONBF, 0 );
+
+    // redirect unbuffered STDIN to the console
+    lStdHandle = (long)GetStdHandle(STD_INPUT_HANDLE);
+    hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+    fp = _fdopen( hConHandle, "r" );
+    *stdin = *fp;
+    setvbuf( stdin, NULL, _IONBF, 0 );
+
+    // redirect unbuffered STDERR to the console
+    lStdHandle = (long)GetStdHandle(STD_ERROR_HANDLE);
+    hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+    fp = _fdopen( hConHandle, "w" );
+    *stderr = *fp;
+    setvbuf( stderr, NULL, _IONBF, 0 );
+
+  }
+
    return wmain(__argc,__wargv);
 }
 
@@ -289,7 +325,7 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
   Image orig( utf8_path );
   //discard small images
   if(orig.rows() < min_accepted_height || orig.columns() < min_accepted_width)
-    return false;
+    throw exception("image too small");
   //add white background for transparent images
   orig.extent(Geometry(orig.columns(),orig.rows()),"white");
 
@@ -331,7 +367,7 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
        * if it overflows it needs to be drawn again at the original position which
        * causes the oveflown part to be drawn at the correct position.
        *
-       * this is no longer true for winndows 8
+       * this is no longer true for windows 8
        */
       if (!win8) {
         if (x < 0) x += width_total;
