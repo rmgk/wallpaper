@@ -32,7 +32,7 @@ namespace wpc
   bool similarAspect(int ox, int oy, int tx, int ty);
 
 
-  // environment 
+  // environment
 
   struct screenInfo {
     int count;
@@ -65,7 +65,7 @@ int wmain( int argc, wchar_t ** argv)
 
     wstring infile;
     wstring outfile = wpc::make_absolute(L"wallpaper");
-    
+
     if (argc == 1) {
       cout << L"<path>" << endl;
       return -1;
@@ -138,7 +138,7 @@ wallpaper modifying stuff
 **********************************************************************************************************/
 
 
-Color wpc::getBorderColor(Image& image, GravityType border) 
+Color wpc::getBorderColor(Image& image, GravityType border)
 {
   int red[16][16][16] = {0};
   int green[16][16][16] = {0};
@@ -211,7 +211,7 @@ void wpc::frame(Image& image,int x, int y)
     image.splice(Geometry((x-w)/2,0,0,0));
 
   }
-  else 
+  else
   {
     //obenunten
     //unten
@@ -232,7 +232,7 @@ void wpc::retarget(Image& image, int x, int y)
     geo.aspect(true);
     image.resize(geo);
   }
-  else 
+  else
   {
     image.resize(Geometry(x,y));
     frame(image,x,y);
@@ -275,9 +275,9 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
   {
     width.push_back(screens[i].right - screens[i].left);
     height.push_back(screens[i].bottom - screens[i].top);
-    if (screens[i].left < leftmost_coordinate) 
+    if (screens[i].left < leftmost_coordinate)
       leftmost_coordinate = screens[i].left;
-    if (screens[i].top < topmost_coordinate) 
+    if (screens[i].top < topmost_coordinate)
       topmost_coordinate = screens[i].top;
     // std::cout << "screen " << i << "\n width: " << width[i] << " height: " << height[i] << "\n x: " << screens[i].left << " y: " << screens[i].top << endl;
   }
@@ -321,16 +321,16 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
         auto geo = Geometry(0,0,area.right - warea.right + 1, area.bottom - warea.bottom + 3);
         wpc::annotate(temp,annotation,geo);
       }
-    
+
       int x = screens[i].left;
       int y = screens[i].top;
       /* when in tiling wallpaper mode, the origin is at the upper left corner of the
-       * primary monitor. if any secondary monitor is left or above the primary its 
+       * primary monitor. if any secondary monitor is left or above the primary its
        * coordinates will be negative. adding the total size to the negative position
-       * gives the correct position but that may cause the image to overflow. 
+       * gives the correct position but that may cause the image to overflow.
        * if it overflows it needs to be drawn again at the original position which
        * causes the oveflown part to be drawn at the correct position.
-       * 
+       *
        * this is no longer true for winndows 8
        */
       if (!win8) {
@@ -346,12 +346,12 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
        * but the screen coordinates still have the origin at the upper left edge of the primary monitor.
        * thus we subtract the leftmost and topmost coordinates any screen has from the x and y coordinates,
        * to get the correct positions. be aware that these are negative
-       */ 
+       */
       else {
         canvas.composite(temp, x - leftmost_coordinate, y - topmost_coordinate);
       }
     }
-      
+
   }
   else {
     wpc::retarget(orig,width[0],height[0]);
@@ -399,21 +399,21 @@ bool wpc::setRegistry()
                       //m_SUBKEY_WALLPAPER( TEXT("Wallpaper") ),
 
 
-  if(RegCreateKeyEx(  HKEY_CURRENT_USER, 
-                  L"Control Panel\\Desktop", 
-                  0, 
-                  NULL, 
-                  REG_OPTION_NON_VOLATILE, 
-                  KEY_CREATE_SUB_KEY | KEY_ALL_ACCESS, 
-                  NULL, 
-                  &hKey, 
+  if(RegCreateKeyEx(  HKEY_CURRENT_USER,
+                  L"Control Panel\\Desktop",
+                  0,
+                  NULL,
+                  REG_OPTION_NON_VOLATILE,
+                  KEY_CREATE_SUB_KEY | KEY_ALL_ACCESS,
+                  NULL,
+                  &hKey,
                   &dwDisposition) != ERROR_SUCCESS) return false;
-  
 
-  /******************************************************************************** 
-    Edit windows register settings in : [HKEY_CURRENT_USER\Control Panel\Desktop] 
+
+  /********************************************************************************
+    Edit windows register settings in : [HKEY_CURRENT_USER\Control Panel\Desktop]
     Value name : "TileWallpaper"
-    this will activate tiling which is used to display different parts of the 
+    this will activate tiling which is used to display different parts of the
     image on different monitors
   *********************************************************************************/
   if(RegSetValueEx( hKey,
@@ -422,11 +422,11 @@ bool wpc::setRegistry()
                     REG_SZ,
                     (CONST BYTE *)L"1", //"1" activates tiling
                     3) != ERROR_SUCCESS) return false;
-  
+
 
 
   /*********************************************************************************
-    Edit windows register settings in : [HKEY_CURRENT_USER\Control Panel\Desktop] 
+    Edit windows register settings in : [HKEY_CURRENT_USER\Control Panel\Desktop]
     Value name :"WallpaperStyle"
     this will position the wallpaper
   **********************************************************************************/
@@ -436,7 +436,7 @@ bool wpc::setRegistry()
                     REG_SZ,
                     (CONST BYTE *)L"0", // "22" displays „spanning“
                     3) != ERROR_SUCCESS) return false;
-    
+
   RegCloseKey(hKey);
 
   // SUCCESS
@@ -454,18 +454,18 @@ BOOL CALLBACK MonitorEnumProc(
   __in  HDC /*hdcMonitor*/,
   __in  LPRECT /*lprcMonitor*/,
   __in  LPARAM dwData
-) 
+)
 {
   auto rect = (wpc::screenInfo *)dwData;
   MONITORINFO mi;
   mi.cbSize = sizeof(MONITORINFO);
-  GetMonitorInfo(hMonitor, &mi); 
+  GetMonitorInfo(hMonitor, &mi);
   rect->areas.push_back(mi.rcMonitor);
   rect->working_areas.push_back(mi.rcWork);
   return TRUE;
 }
 
-wpc::screenInfo wpc::getScreens() 
+wpc::screenInfo wpc::getScreens()
 {
   using namespace std;
   screenInfo result;
@@ -478,7 +478,7 @@ wpc::screenInfo wpc::getScreens()
 
   EnumDisplayMonitors(NULL,NULL,MonitorEnumProc,(LPARAM)&result);
 
-  /*for (auto it = get<3>(result).begin(); it != get<3>(result).end(); ++it) 
+  /*for (auto it = get<3>(result).begin(); it != get<3>(result).end(); ++it)
   {
     cout << it->left << " " << it->top << " " << it->right << " " << it->bottom << endl;
   }*/
@@ -495,7 +495,7 @@ bool wpc::isWin8orLater() {
 
     GetVersionEx(&osvi);
 
-    bIsWin8orLater = 
+    bIsWin8orLater =
        ( (osvi.dwMajorVersion > 6) ||
        ( (osvi.dwMajorVersion == 6) && (osvi.dwMinorVersion >= 2) ));
 
