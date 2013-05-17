@@ -53,7 +53,7 @@ foreach (@ARGV) {
 	when('upload') { upload() };
 	when('voteup') { vote(1) };
 	when('votedown') { vote(-1) };
-	when(qr/^query\s+(.+)/i) { display_query($1) };
+	when(qr/^rand\s+(.+)/i) { display_query($1) };
 	when(/-?\d+/) { change_wp($_)};
 	default { usage() };
 }
@@ -80,7 +80,7 @@ sub usage {
 	say "\tupload - upload to some image hoster and open link";
 	say "\tvoteup - vote wallpaper up";
 	say "\tvotedown - vote wallpaper down";
-	say "\t\"query <query where clause>\" - executes the query and displays the first result";
+	say "\t\"rand <query where clause>\" - executes the query and displays a random result";
 	say "\t'number' - change wallpaper by that amount";
 }
 
