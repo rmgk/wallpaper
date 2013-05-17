@@ -3,6 +3,7 @@ use strict;
 use warnings;
 
 use lib "./lib";
+use utf8;
 
 use WallpaperList;
 use WPConfig;
@@ -52,6 +53,7 @@ foreach (@ARGV) {
 	when('upload') { upload() };
 	when('voteup') { vote(1) };
 	when('votedown') { vote(-1) };
+	when(qr/^query\s+(.+)/i) { display_query($1) };
 	when(/-?\d+/) { change_wp($_)};
 	default { usage() };
 }
@@ -78,6 +80,7 @@ sub usage {
 	say "\tupload - upload to some image hoster and open link";
 	say "\tvoteup - vote wallpaper up";
 	say "\tvotedown - vote wallpaper down";
+	say "\t\"query <query where clause>\" - executes the query and displays the first result";
 	say "\t'number' - change wallpaper by that amount";
 }
 
@@ -460,4 +463,17 @@ sub lock_set {
 sub lock_release {
 	my $lock = shift;
 	return unlink $lock;
+}
+
+sub display_query {
+	my ($query) = @_;
+	say_timed "Select randomly from Query";
+	my $fav = WallpaperList::get_list('path IS NOT NULL AND sha1 IS NOT NULL AND (' . $query. ')', "ORDER BY RANDOM() LIMIT 1");
+	warn "nothing matching criteria" and return unless @$fav;
+	my $sel = $fav->[0];
+	say_timed "Selected " . $sel->[0] ." from " . @$fav;
+	gen_wp($sel->[0],$sel->[1], 'set') or return;
+	say_timed "SAVE CONFIG";
+	$INI->{current} = $sel->[1];
+	WPConfig::save();
 }
