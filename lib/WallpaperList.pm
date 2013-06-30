@@ -26,9 +26,9 @@ sub init {
 	if($DBH->selectrow_array("SELECT name FROM sqlite_master WHERE type='table' AND name='wallpaper'")) {
 		return 1;
 	}
-	
+
 	say "Creating Wallpaper Table";
-	$DBH->do("CREATE TABLE wallpaper (position INT UNIQUE, sha1 CHAR UNIQUE, path CHAR UNIQUE, vote INT, fav INT, nsfw INT)") 
+	$DBH->do("CREATE TABLE wallpaper (position INT UNIQUE, sha1 CHAR UNIQUE, path CHAR UNIQUE, vote INT, fav INT, nsfw INT)")
 		or die "could not create table";
 	return 1;
 }
@@ -185,9 +185,9 @@ sub _add_folder {
 	say $base.$path;
 
 	opendir my $PIC, $base.$path or die $!;
-	
+
 	while(my $x = readdir($PIC)) {
-		next if $x =~ m/^\.{1,2}$/; 
+		next if $x =~ m/^\.{1,2}$/;
 		if (-d $base.$path.$x) {
 			_add_folder($base,$path.$x.'\\');
 		}
@@ -197,7 +197,7 @@ sub _add_folder {
 			}
 		}
 	}
-	
+
 	closedir($PIC);
 	$DBH->commit();
 }
@@ -209,6 +209,12 @@ sub insert_file {
 	return if $PATHS->{$path}->{path};
 	$STH_INSERT->execute($path);
 	$PATHS->{$path}->{path} = $path;
+}
+
+#vacuum the database which reclaims free space
+sub vacuum {
+	$DBH->do('vacuum');
+	$DBH->commit();
 }
 
 1;

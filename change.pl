@@ -51,6 +51,7 @@ foreach (@ARGV) {
 	when('stat') { show_wp_stat() };
 	when('teu') { teu() };
 	when('upload') { upload() };
+	when('vacuum') { vacuum() };
 	when('voteup') { vote(1) };
 	when('votedown') { vote(-1) };
 	when(qr/^rand\s+(.+)/i) { display_query($1) };
@@ -78,6 +79,7 @@ sub usage {
 	say "\tstat - displays statistics for the current image";
 	say "\tteu - search with tineye";
 	say "\tupload - upload to some image hoster and open link";
+	say "\tvacuum - rebuild the database to reclaim free space";
 	say "\tvoteup - vote wallpaper up";
 	say "\tvotedown - vote wallpaper down";
 	say "\t\"rand <query where clause>\" - executes the query and displays a random result";
@@ -476,4 +478,9 @@ sub display_query {
 	say_timed "SAVE CONFIG";
 	$INI->{current} = $sel->[1];
 	WPConfig::save();
+}
+
+sub vacuum {
+	say_timed "vacuum wallpaper list";
+	WallpaperList::vacuum();
 }
