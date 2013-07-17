@@ -11,6 +11,15 @@ use Cwd qw(abs_path);
 use File::Copy;
 use Time::HiRes;
 
+# the below block, will stop duplicate instances of this program from running
+# it may however not provide any feedback as to why, and will not work well
+# with image pregeneration
+# use Fcntl ':flock';
+# say "huh";
+# open my $self_lock, '<', $0 or die "Couldn't open self: $!";
+# flock $self_lock, LOCK_EX | LOCK_NB or die "This script is already running";
+
+
 my $TIME = Time::HiRes::time;
 my $START_TIME = $TIME;
 
