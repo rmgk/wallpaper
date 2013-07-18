@@ -50,8 +50,9 @@ foreach (@ARGV) {
 	when('delete') { delete_wp() };
 	when('delete_all') { delete_all() };
 	when('delete_deleted') { delete_deleted() };
-	when('fav') { set_fav() };
 	when('export') { export() };
+	when('fav') { set_fav() };
+	when('hash_all') { hash_all() };
 	when('nsfw') { set_nsfw() };
 	when('open') { open_wallpaper() };
 	when('pregen') { pregenerate_wallpapers() };
@@ -79,8 +80,9 @@ sub usage {
 	say "\tdelete - move to trash_path";
 	say "\tdelete_all - mark all matching delete_criteria as deleted";
 	say "\tdelete_deleted - move all files marked as deleted to trash";
-	say "\tfav - set favourite flag";
 	say "\texport - export selection to export_path";
+	say "\tfav - set favourite flag";
+	say "\thash_all - hash all unhashed files";
 	say "\tnsfw - set the nsfw flag";
 	say "\topen - opens the image";
 	say "\tpregen - pregenerates an amount of wallpapers specified by pregen_amount";
@@ -100,10 +102,20 @@ sub usage {
 }
 
 sub index_wp_path {
-	say "Indexing wp_path ";
+	say_timed "Indexing wp_path";
 	WallpaperList::add_folder($INI->{wp_path});
 	say_timed "Adding Random Order", ;
 	WallpaperList::determine_order($INI->{order_criteria});
+}
+
+sub hash_all {
+	say_timed "Hashing all files";
+	my $files = WallpaperList::get_list('path IS NOT NULL AND sha1 IS NULL');
+	for (@$files) {
+		my ($path, $sha) = @$_;
+		say $path;
+		WallpaperList::gen_sha($path);
+	}
 }
 
 sub reorder_wp {
