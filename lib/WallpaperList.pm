@@ -59,7 +59,13 @@ sub gen_sha {
 		$sha or die "could not get sha of $path";
 		unless ($DBH->do("UPDATE OR FAIL wallpaper SET sha1 = ? WHERE path = ?",undef,$sha,$path)) {
 			$DBH->do("DELETE FROM wallpaper WHERE path = ?", undef, $path);
-			my ($double) = $DBH->selectrow_array("SELECT path FROM wallpaper WHERE sha1 = ?",undef,$sha);
+			my ($double, $deleted) = $DBH->selectrow_array("SELECT path, deleted FROM wallpaper WHERE sha1 = ?",undef,$sha);
+			if ((! -e $WP_PATH . $double) and ((! defined $deleted) or !($deleted > 0))) {
+				say "{$path} has same hash as missing {$double}, assuming rename";
+				$DBH->do("UPDATE wallpaper SET path = ?, deleted = NULL WHERE sha1 = ?",undef, $path, $sha);
+				$double = undef;
+			}
+			$DBH->commit();
 			return ($path,$sha,$double);
 		}
 	}
@@ -84,8 +90,8 @@ sub get_pos {
 #$sha
 #markes $sha as deleted
 sub mark_deleted {
-	my $sha = shift;
-	$DBH->do("UPDATE wallpaper SET deleted = 1, position = - _rowid_ WHERE sha1 = ?", undef, $sha);
+	my ($sha, $value) = @_;
+	$DBH->do("UPDATE wallpaper SET deleted = ?, position = - _rowid_ WHERE sha1 = ?", undef, $value, $sha);
 	$DBH->commit();
 }
 
@@ -163,7 +169,7 @@ sub get_list {
 #-> \@[$path,$sha]
 #returns a list of deleted paths and shas
 sub get_deleted {
-	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE deleted IS NOT NULL ");
+	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE deleted > 0 ");
 }
 
 #$sha -> \%{column => value}

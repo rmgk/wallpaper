@@ -103,7 +103,7 @@ sub index_wp_path {
 	say "Indexing wp_path ";
 	WallpaperList::add_folder($INI->{wp_path});
 	say_timed "Adding Random Order", ;
-	WallpaperList::determine_order("position IS NULL AND vote IS NULL");
+	WallpaperList::determine_order($INI->{order_criteria});
 }
 
 sub reorder_wp {
@@ -149,7 +149,7 @@ sub delete_wp {
 	my $pos = shift // $INI->{position};
 	my ($path,$sha) = get_data($pos);
 	warn "could not get path" and return unless ($path);
-	WallpaperList::mark_deleted($sha);
+	WallpaperList::mark_deleted($sha, 1);
 	_delete($path,$sha);
 }
 
@@ -232,8 +232,8 @@ sub gen_wp {
 		say_timed "Processing:";
 		say "\t$rel_path";
 		unless (-e $path) {
-			say "\t$path does not exist, deleting from db" ;
-			WallpaperList::mark_deleted($sha);
+			say "\t$path does not exist, remove position" ;
+			WallpaperList::mark_deleted($sha, -1);
 			return;
 		}
 
@@ -247,8 +247,7 @@ sub gen_wp {
 
 		if ($ret) { #returns true on failure
 			say_timed "\twallpaper failed checks, removing from rotation";
-			WallpaperList::vote($sha,-10000);
-			WallpaperList::remove_position($sha);
+			WallpaperList::mark_deleted($sha, 2);
 			return;
 		}
 
