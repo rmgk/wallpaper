@@ -247,6 +247,9 @@ sub gen_wp {
 		}
 
 	}
+	elsif($set_wp) {
+		set_wallpaper($rel_path, $sha);
+	}
 	return 1;
 }
 
