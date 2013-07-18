@@ -4,6 +4,8 @@ use warnings;
 
 use lib "./lib";
 use utf8;
+use FindBin;
+use lib $FindBin::Bin.'/lib';
 
 use WallpaperList;
 use WPConfig;
@@ -35,7 +37,7 @@ sub say_timed {
 }
 
 say_timed "Initialise";
-my $INI = WPConfig::load() or die "could not load config";
+my $INI = WPConfig::load($FindBin::Bin . "/") or die "could not load config";
 WallpaperList::init($INI->{db_path},$INI->{wp_path});
 
 if (!WallpaperList::max_pos()) {
