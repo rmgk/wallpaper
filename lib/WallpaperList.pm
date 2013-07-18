@@ -89,6 +89,14 @@ sub mark_deleted {
 	$DBH->commit();
 }
 
+#$criteria -> \@[$path,$sha]
+#takes a sql string of criteria and returns a list of paths and shas
+sub mark_all_deleted {
+	my ($criteria) = @_;
+	$DBH->do("UPDATE wallpaper SET deleted = 1 WHERE ($criteria) ");
+	$DBH->commit();
+}
+
 #$sha
 #removes the position of $sha
 sub remove_position {
@@ -150,6 +158,12 @@ sub max_pos {
 sub get_list {
 	my ($criteria, $additional_clauses) = @_;
 	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE ($criteria) AND deleted IS NULL " . ($additional_clauses // ""));
+}
+
+#-> \@[$path,$sha]
+#returns a list of deleted paths and shas
+sub get_deleted {
+	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE deleted IS NOT NULL ");
 }
 
 #$sha -> \%{column => value}

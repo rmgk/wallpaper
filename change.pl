@@ -48,7 +48,8 @@ if (!WallpaperList::max_pos()) {
 foreach (@ARGV) {
 	when(undef) { usage() };
 	when('delete') { delete_wp() };
-	when('deleteall') { delete_all() };
+	when('delete_all') { delete_all() };
+	when('delete_deleted') { delete_deleted() };
 	when('fav') { set_fav() };
 	when('export') { export() };
 	when('nsfw') { set_nsfw() };
@@ -76,7 +77,8 @@ say_timed "Done";
 sub usage {
 	say "\nThe following commandline options are available:\n";
 	say "\tdelete - move to trash_path";
-	say "\tdeleteall - move all matching delete_all_criteria to trash_path";
+	say "\tdelete_all - mark all matching delete_criteria as deleted";
+	say "\tdelete_deleted - move all files marked as deleted to trash";
 	say "\tfav - set favourite flag";
 	say "\texport - export selection to export_path";
 	say "\tnsfw - set the nsfw flag";
@@ -152,15 +154,19 @@ sub delete_wp {
 }
 
 sub delete_all {
-	my $list = WallpaperList::get_list('path IS NOT NULL AND sha1 IS NOT NULL AND (' . $INI->{delete_all_criteria} . ')');
+	my $list = WallpaperList::mark_all_deleted($INI->{delete_all_criteria});
+}
+
+sub delete_deleted {
+	my $list = WallpaperList::get_deleted();
 	foreach (@$list) {
-		WallpaperList::mark_deleted($_->[1]);
 		_delete(@$_);
 	}
 }
 
 sub _delete {
 	my ($path,$sha) = @_;
+	return unless -e $INI->{wp_path} . $path;
 	mkdir $INI->{trash_path} or die 'could not create folder'.$INI->{trash_path}.": $!" unless( -d $INI->{trash_path});
 	say "Move: ". $path ." To " . $INI->{trash_path};
 	open my $f, ">>", $INI->{trash_path} . '_map.txt' or die "could not open ". $INI->{trash_path} . '_map.txt:' . $!;
