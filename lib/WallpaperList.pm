@@ -21,7 +21,7 @@ my $PATHS;
 sub init {
 	$DB_PATH = shift or croak 'db_path not defined';
 	$WP_PATH = shift or croak 'wp_path not defined';
-	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 1,PrintError => 1});
+	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 0,PrintError => 1});
 
 	if($DBH->selectrow_array("SELECT name FROM sqlite_master WHERE type='table' AND name='wallpaper'")) {
 		return 1;
@@ -39,23 +39,34 @@ sub get_data {
 	my $position = shift;
 	my ($path,$sha) = $DBH->selectrow_array("SELECT path, sha1 FROM wallpaper WHERE position = ?",undef,$position);
 	if ($path and !$sha) {
-		if (! -e $WP_PATH . $path) {
-			$DBH->do("DELETE FROM wallpaper WHERE position = ?", undef, $position);
-		}
-		else {
-			$sha = $SHA->addfile($WP_PATH . $path,"b")->hexdigest;
-			$sha or die "could not get sha of $path";
-			unless ($DBH->do("UPDATE OR FAIL wallpaper SET sha1 = ? WHERE position = ?",undef,$sha,$position)) {
-				$DBH->do("DELETE FROM wallpaper WHERE position = ?", undef, $position);
-				my ($double) = $DBH->selectrow_array("SELECT path FROM wallpaper WHERE sha1 = ?",undef,$sha);
-				return ($path,$sha,$double);
-			}
-		}
-		$DBH->commit();
+		return gen_sha($path);
 	}
 	return ($path , $sha) if $path and $sha;
 	return undef;
 }
+
+#$path -> ($path,$sha,$double)
+#calculates the sha value and updates the database
+#returns undef if sha could not be calculated
+#returns $double if the sha already existed
+sub gen_sha {
+	my ($path, $sha) = @_;
+	if (! -e $WP_PATH . $path) {
+		$DBH->do("DELETE FROM wallpaper WHERE path = ?", undef, $path);
+	}
+	else {
+		$sha = $SHA->addfile($WP_PATH . $path,"b")->hexdigest;
+		$sha or die "could not get sha of $path";
+		unless ($DBH->do("UPDATE OR FAIL wallpaper SET sha1 = ? WHERE path = ?",undef,$sha,$path)) {
+			$DBH->do("DELETE FROM wallpaper WHERE path = ?", undef, $path);
+			my ($double) = $DBH->selectrow_array("SELECT path FROM wallpaper WHERE sha1 = ?",undef,$sha);
+			return ($path,$sha,$double);
+		}
+	}
+	$DBH->commit();
+	return ($path, $sha);
+}
+
 #$sha -> $path
 #returns the $path for $sha
 sub get_path {
@@ -151,6 +162,7 @@ sub get_stat {
 sub determine_order {
 	my $criteria = shift;
 	use List::Util 'shuffle';
+	my $old_autocommit = $DBH->{AutoCommit};
 	$DBH->{AutoCommit} = 0;
 	my @ids =  shuffle @{$DBH->selectcol_arrayref("SELECT _rowid_ FROM wallpaper WHERE ($criteria) AND deleted IS NULL")};
 	my $sth = $DBH->prepare("UPDATE wallpaper SET position = ? WHERE _rowid_ = ?");
@@ -158,7 +170,7 @@ sub determine_order {
 	my $to = $from - 1 + @ids;
 	$sth->execute_array(undef, [shuffle ($from..$to)], \@ids);
 	$DBH->commit();
-	$DBH->{AutoCommit} = 1;
+	$DBH->{AutoCommit} = $old_autocommit;
 }
 
 #removes the order
@@ -174,9 +186,10 @@ sub add_folder {
 	$path //= ""; # path is undef when we start at base
 	$STH_INSERT = $DBH->prepare("INSERT OR FAIL INTO wallpaper (path) VALUES (?)");
 	$PATHS = $DBH->selectall_hashref("SELECT path FROM wallpaper","path");
+	my $old_autocommit = $DBH->{AutoCommit};
 	$DBH->{AutoCommit} = 0;
 	_add_folder($base,$path);
-	$DBH->{AutoCommit} = 1;
+	$DBH->{AutoCommit} = $old_autocommit;
 }
 
 #$base,$path

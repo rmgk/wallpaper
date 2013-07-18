@@ -175,14 +175,7 @@ sub vote {
 
 sub rand_wp {
 	say_timed "Select Random";
-	my $fav = WallpaperList::get_list('path IS NOT NULL AND sha1 IS NOT NULL AND (' . $INI->{rand_criteria} . ')', "ORDER BY RANDOM() LIMIT 1");
-	warn "nothing matching criteria" and return unless @$fav;
-	my $sel = $fav->[0];
-	say_timed "Selected " . $sel->[0] ." from " . @$fav;
-	gen_wp($sel->[0],$sel->[1], 'set') or return;
-	say_timed "SAVE CONFIG";
-	$INI->{current} = $sel->[1];
-	WPConfig::save();
+	display_query($INI->{rand_criteria});
 }
 
 sub change_wp {
@@ -201,14 +194,14 @@ sub change_wp {
 	say_timed "Change To:";
 	say "\t$rel_path ($pos)";
 
-	unless (gen_wp($rel_path,$sha)) {
+	unless (gen_wp($rel_path,$sha,"set")) {
 		return change_wp($mv <=> 0);
 	}
 
 	say_timed "Save Config";
 	$INI->{current} = $sha;
 	$INI->{position} = $pos;
-	set_wallpaper($rel_path, $sha);
+	# set_wallpaper($rel_path, $sha);
 	WPConfig::save();
 }
 
@@ -216,7 +209,13 @@ sub gen_wp {
 	my ($rel_path,$sha,$set_wp) = @_;
 
 	# do not pregen anything, if no gen path
-	return 1 unless ($INI->{gen_path});
+	if (! $INI->{gen_path}) {
+		if ($set_wp) {
+			# no gen path, but still should set wallpaper
+			set_wallpaper($rel_path, $sha);
+		}
+		return 1;
+	}
 
 	my $path = $INI->{wp_path} . $rel_path;
 	mkdir $INI->{gen_path} or die 'could not create folder'.$INI->{gen_path} .": $!" unless -e $INI->{gen_path};
@@ -261,7 +260,7 @@ sub exec_command {
 		$command =~ s/\{$key\}/$params{$key}/egi;
 	}
 
-	say_timed "executing: $command";
+	say_timed "Executing $command";
 
 	return system($command);
 }
@@ -294,8 +293,10 @@ sub pregenerate_wallpapers {
 }
 
 sub get_data {
-	my $pos = shift;
-	my ($path,$sha,$double) = WallpaperList::get_data($pos);
+	my ($pos, $qpath) = @_;
+	my ($path, $sha, $double) = $pos ?
+		WallpaperList::get_data($pos) :
+		WallpaperList::gen_sha($qpath);
 	if ($double) {
 		say "$path has same sha as $double";
 		_delete($path,$sha);
@@ -306,7 +307,7 @@ sub get_data {
 
 sub set_wallpaper {
 	my ($rel_path, $sha) = @_;
-	say_timed "Set Wallpaper $sha: $rel_path";
+	# say_timed "Set Wallpaper $sha $rel_path";
 	# Wallpaper::setWallpaper($INI->{gen_path} . $wp);
 	exec_command("set",
 		path => $INI->{wp_path} . $rel_path,
@@ -373,14 +374,16 @@ sub lock_release {
 
 sub display_query {
 	my ($query) = @_;
-	say_timed "Select randomly from Query";
-	my $fav = WallpaperList::get_list('path IS NOT NULL AND sha1 IS NOT NULL AND (' . $query. ')', "ORDER BY RANDOM() LIMIT 1");
+	say_timed "Select randomly from query";
+	my $fav = WallpaperList::get_list('path IS NOT NULL AND (' . $query. ')', "ORDER BY RANDOM() LIMIT 1");
 	warn "nothing matching criteria" and return unless @$fav;
 	my $sel = $fav->[0];
-	say_timed "Selected " . $sel->[0] ." from " . @$fav;
-	gen_wp($sel->[0],$sel->[1], 'set') or return;
+	my ($path, $sha) = @$sel;
+	($path, $sha) = get_data(0, $path) if $path and not $sha;
+	say_timed "Selected " . $path;
+	gen_wp($path,$sha, 'set') or return;
 	say_timed "SAVE CONFIG";
-	$INI->{current} = $sel->[1];
+	$INI->{current} = $sha;
 	WPConfig::save();
 }
 
