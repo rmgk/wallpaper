@@ -145,13 +145,14 @@ sub delete_wp {
 	my $pos = shift // $INI->{position};
 	my ($path,$sha) = get_data($pos);
 	warn "could not get path" and return unless ($path);
+	WallpaperList::mark_deleted($sha);
 	_delete($path,$sha);
-	WallpaperList::delete($sha);
 }
 
 sub delete_all {
 	my $list = WallpaperList::get_list('path IS NOT NULL AND sha1 IS NOT NULL AND (' . $INI->{delete_all_criteria} . ')');
 	foreach (@$list) {
+		WallpaperList::mark_deleted($_->[1]);
 		_delete(@$_);
 	}
 }
@@ -182,7 +183,6 @@ sub rand_wp {
 	say_timed "SAVE CONFIG";
 	$INI->{current} = $sel->[1];
 	WPConfig::save();
-	# set_wallpaper($sel->[1]);
 }
 
 sub change_wp {
@@ -208,43 +208,62 @@ sub change_wp {
 	say_timed "Save Config";
 	$INI->{current} = $sha;
 	$INI->{position} = $pos;
+	set_wallpaper($rel_path, $sha);
 	WPConfig::save();
-	set_wallpaper($sha);
-
 }
 
 sub gen_wp {
 	my ($rel_path,$sha,$set_wp) = @_;
+
+	# do not pregen anything, if no gen path
+	return 1 unless ($INI->{gen_path});
+
 	my $path = $INI->{wp_path} . $rel_path;
 	mkdir $INI->{gen_path} or die 'could not create folder'.$INI->{gen_path} .": $!" unless -e $INI->{gen_path};
-	if (! -e $INI->{gen_path}  . $sha ) {
+	my $gen_path = $INI->{gen_path}  . $sha;
+	if (! -e $gen_path ) {
 		say_timed "Processing:";
 		say "\t$rel_path";
 		unless (-e $path) {
 			say "\t$path does not exist, deleting from db" ;
-			WallpaperList::delete($sha);
+			WallpaperList::mark_deleted($sha);
 			return;
 		}
-		#if (load_wallpaper($path)) {
-		#	say "\twallpaper could not be loaded, removing from rotation";
-		#	WallpaperList::remove_position($sha);
-		#	return;
-		#}
-		#if (!check_wallpaper()) {
-		#	say "\twallpaper failed checks, removing from rotation";
-		#	WallpaperList::remove_position($sha);
-		#	return;
-		#}
-		if (adjust_wallpaper($rel_path,$sha,$set_wp)) { #returns true on failure
-			say "\twallpaper failed checks, removing from rotation";
+
+		my $ret = exec_command($set_wp?"convert_set":"convert",
+			path => $path,
+			sha => $sha,
+			gen_path => $gen_path,
+			);
+
+		#my $ret = system('wpt.exe', ':convert' . ($set_wp?'set':''), $path, "generated/$sha");
+
+		if ($ret) { #returns true on failure
+			say_timed "\twallpaper failed checks, removing from rotation";
 			WallpaperList::vote($sha,-10000);
 			WallpaperList::remove_position($sha);
 			return;
 		}
-		#say "\tSave As: $sha";
-		#Wallpaper::saveAs($INI->{gen_path} .$sha, 'bmp');
+
 	}
 	return 1;
+}
+
+sub exec_command {
+	my ($type, %params) = @_;
+	my $command = "";
+	$command = $INI->{command_convert_set} if $type eq "convert_set";
+	$command = $INI->{command_convert} if $type eq "convert";
+	$command = $INI->{command_set} if $type eq "set";
+	die "unknown command type: $type" unless $command;
+
+	for my $key (keys %params) {
+		$command =~ s/\{$key\}/$params{$key}/egi;
+	}
+
+	say_timed "executing: $command";
+
+	return system($command);
 }
 
 sub cleanup_generated_wallpapers {
@@ -285,140 +304,16 @@ sub get_data {
 	return ($path,$sha);
 }
 
-sub adjust_wallpaper {
-	my ($file,$sha,$set_wp) = @_;
-
-	#my ($iw,$ih) = Wallpaper::getDimensions();
-
-	my ($rx,$ry) = split(/\D+/,$INI->{resolution});
-
-	my $abw = 1 + $INI->{max_deformation};
-
-	my ($r2x,$r2y) = split(/\D+/,$INI->{resolution2});
-
-	my ($sx,$sy) = split(/\D+/,$INI->{composite_position});
-
-	my ($mx, $my) = split(/\D+/,$INI->{min_resolution});
-
-	my $an1 = "";
-
-	if ($INI->{annotate} ne "none") {
-		my $f = $file;
-		$f =~ s'\\'/'g;
-		$f =~ s#.+/## unless $INI->{annotate} eq "path";
-		$an1 = $f
-	}
-
-	my ($xt, $yt);
-	if ($INI->{resolution_total}) {
-		($xt,$yt) = split(/\D+/,$INI->{resolution_total});
-	}
-	else{
-		$xt = $sx + $r2x;
-		$yt = $sy + $r2y;
-	}
-
-	#use Time::HiRes;
-	#my $time =  Time::HiRes::time;
-
-	# my $ret = system('gwp.exe',$INI->{wp_path} . $file,"generated/$sha",$rx,$ry,$r2x,$r2y,$mx,$my,$abw,$sx,$sy,$xt,$yt,"pink",$an1,$INI->{anno_offset},'BMP3');
-	my $ret = system('wpt.exe', ':convert' . ($set_wp?'set':''), $INI->{wp_path} . $file, "generated/$sha");
-
-	#say "system: $ret";
-	#say  Time::HiRes::time - $time;
-	return $ret;
-
-	#Wallpaper::copy(1) if ($r2x and $r2y);
-
-	#retarget_wallpaper($iw,$ih,$rx,$ry,$abw, $file ,
-	#	$INI->{annotate},$INI->{anno_offset} ,
-	#	$INI->{taskbar_offset},
-	#	$INI->{skew});
-
-	#if ($r2x and $r2y) {
-	#	Wallpaper::workWith(1);
-	#	retarget_wallpaper($iw,$ih,$r2x,$r2y,$abw, $file,
-	#		$INI->{annotate2},$INI->{anno_offset2} ,
-	#		$INI->{taskbar_offset2},
-	#		$INI->{skew2});
-	#	Wallpaper::append(0,$INI->{stack});
-	#	Wallpaper::workWith(0);
-	#}
-}
-
-# sub retarget_wallpaper {
-# 	my ($iw, $ih , $rx, $ry ,$abw,$file, $annotate,$anno_off,$off,$skew) = @_;
-# 	my $iz = $iw/$ih;
-# 	my $rz = $rx/$ry;
-
-# 	if (($iz < $rz * $abw) && ($iz > $rz / $abw)) {
-# 		say sprintf ("\tdeformation IN range (%.2f < %.2f < %.2f) - full screen" , $rz / $abw , $iz , $rz*$abw);
-# 		Wallpaper::resize($rx,$ry);
-# 	}
-# 	else {
-# 		say sprintf ("\tdeformation OUT of range (%.2f < %.2f < %.2f) - keeping ratio",$rz /$abw , $iz , $rz*$abw);
-# 		Wallpaper::resizeKeep($rx,$ry);
-# 		Wallpaper::extend($rx,$ry,$off);
-# 	}
-
-# 	for my $s (split (',',$skew)) {
-# 		next unless $s;
-# 		my $orientation;
-# 		($rx,$ry,$orientation) = translate_skew($rx,$ry,$s);
-# 		Wallpaper::extendBlack(($rx,$ry,$orientation));
-# 	}
-
-# 	if ($annotate ne "none") {
-# 		$file =~ s'\\'/'g;
-# 		if ($annotate eq "path_multiline") {
-# 			my @filename = reverse split m'/', $file;
-# 			my $off = $INI->{anno_offset};
-# 			for (@filename) {
-# 				Wallpaper::annotate($_,$off);
-# 				$off += 16
-# 			}
-# 		}
-# 		else {
-# 			$file =~ s#.+/## unless $annotate eq "path";
-# 			Wallpaper::annotate($file,$anno_off);
-# 		}
-# 	}
-# }
-
-sub translate_skew {
-	my ($rx,$ry, $skew ) = @_;
-	my ($sx,$sy) = split(/[^\d-]+/,$skew);
-	#say "skew $sx, $sy";
-	my ($east_west, $north_south) = ("","");
-	if ($sx) {
-		if ($sx > 0) {
-			$east_west = "West";
-			$rx += $sx;
-		}
-		elsif ($sx < 0) {
-			$east_west = "East";
-			$rx -= $sx;
-		}
-	}
-	if ($sy) {
-		if ($sy > 0) {
-			$north_south = "South";
-			$ry += $sy;
-		}
-		elsif ($sy < 0) {
-			$north_south = "North";
-			$ry -= $sy;
-		}
-	}
-	#say "skeww:" . join(":",($rx,$ry,$north_south . $east_west));
-	return ($rx,$ry,$north_south . $east_west);
-}
-
 sub set_wallpaper {
-	my $wp = shift;
-	say_timed "Set Wallpaper $wp";
+	my ($rel_path, $sha) = @_;
+	say_timed "Set Wallpaper $sha: $rel_path";
 	# Wallpaper::setWallpaper($INI->{gen_path} . $wp);
-	system('wpt.exe', ':set', $INI->{gen_path} . $wp);
+	exec_command("set",
+		path => $INI->{wp_path} . $rel_path,
+		sha => $sha,
+		gen_path => $INI->{gen_path} . $sha,
+		);
+	#system('wpt.exe', ':set', $INI->{gen_path} . $wp);
 	return 1;
 }
 

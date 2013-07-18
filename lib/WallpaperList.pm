@@ -28,7 +28,7 @@ sub init {
 	}
 
 	say "Creating Wallpaper Table";
-	$DBH->do("CREATE TABLE wallpaper (position INT UNIQUE, sha1 CHAR UNIQUE, path CHAR UNIQUE, vote INT, fav INT, nsfw INT)")
+	$DBH->do("CREATE TABLE wallpaper (position INT UNIQUE, sha1 CHAR UNIQUE, path CHAR UNIQUE, vote INT, fav INT, nsfw INT, deleted INT)")
 		or die "could not create table";
 	return 1;
 }
@@ -46,6 +46,7 @@ sub get_data {
 			$sha = $SHA->addfile($WP_PATH . $path,"b")->hexdigest;
 			$sha or die "could not get sha of $path";
 			unless ($DBH->do("UPDATE OR FAIL wallpaper SET sha1 = ? WHERE position = ?",undef,$sha,$position)) {
+				$DBH->do("DELETE FROM wallpaper WHERE position = ?", undef, $position);
 				my ($double) = $DBH->selectrow_array("SELECT path FROM wallpaper WHERE sha1 = ?",undef,$sha);
 				return ($path,$sha,$double);
 			}
@@ -70,10 +71,10 @@ sub get_pos {
 }
 
 #$sha
-#deletes row of $sha from table
-sub delete {
+#markes $sha as deleted
+sub mark_deleted {
 	my $sha = shift;
-	$DBH->do("DELETE FROM wallpaper WHERE sha1 = ?", undef, $sha);
+	$DBH->do("UPDATE wallpaper SET deleted = 1, position = - _rowid_ WHERE sha1 = ?", undef, $sha);
 	$DBH->commit();
 }
 
@@ -137,7 +138,7 @@ sub max_pos {
 #takes a sql string of criteria and returns a list of paths and shas
 sub get_list {
 	my ($criteria, $additional_clauses) = @_;
-	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE ($criteria) " . ($additional_clauses // ""));
+	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE ($criteria) AND deleted IS NULL " . ($additional_clauses // ""));
 }
 
 #$sha -> \%{column => value}
@@ -151,7 +152,7 @@ sub determine_order {
 	my $criteria = shift;
 	use List::Util 'shuffle';
 	$DBH->{AutoCommit} = 0;
-	my @ids =  shuffle @{$DBH->selectcol_arrayref("SELECT _rowid_ FROM wallpaper WHERE ($criteria)")};
+	my @ids =  shuffle @{$DBH->selectcol_arrayref("SELECT _rowid_ FROM wallpaper WHERE ($criteria) AND deleted IS NULL")};
 	my $sth = $DBH->prepare("UPDATE wallpaper SET position = ? WHERE _rowid_ = ?");
 	my $from = (max_pos() // 0) + 1;
 	my $to = $from - 1 + @ids;
