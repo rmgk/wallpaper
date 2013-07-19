@@ -278,13 +278,15 @@ sub exec_command {
 	$command = $INI->{command_set} if $type eq "set";
 	die "unknown command type: $type" unless $command;
 
+	my @command = split /\s+/, $command;
+
 	for my $key (keys %params) {
-		$command =~ s/\{$key\}/$params{$key}/egi;
+		s/\{$key\}/$params{$key}/egi for @command;
 	}
 
-	say_timed "Executing $command";
+	say_timed "Executing ", join " ", @command;
 
-	return system($command);
+	return system(@command);
 }
 
 sub cleanup_generated_wallpapers {
