@@ -247,8 +247,10 @@ sub insert_file {
 
 #vacuum the database which reclaims free space
 sub vacuum {
+	my $old_autocommit = $DBH->{AutoCommit};
+	$DBH->{AutoCommit} = 1;
 	$DBH->do('vacuum');
-	$DBH->commit();
+	$DBH->{AutoCommit} = $old_autocommit;
 }
 
 1;
