@@ -50,6 +50,7 @@ foreach (@ARGV) {
 	when('delete') { delete_wp() };
 	when('delete_all') { delete_all() };
 	when('delete_deleted') { delete_deleted() };
+	when('delete_missing') { delete_missinng() };
 	when('export') { export() };
 	when('fav') { set_fav() };
 	when('hash_all') { hash_all() };
@@ -80,6 +81,7 @@ sub usage {
 	say "\tdelete - move to trash_path";
 	say "\tdelete_all - mark all matching delete_criteria as deleted";
 	say "\tdelete_deleted - move all files marked as deleted to trash";
+	say "\delete_missing - mark all wallpapers that are missing on disk as manually deleted";
 	say "\texport - export selection to export_path";
 	say "\tfav - set favourite flag";
 	say "\thash_all - hash all unhashed files";
@@ -166,7 +168,13 @@ sub delete_wp {
 }
 
 sub delete_all {
+	say_timed "marking as deleted";
 	my $list = WallpaperList::mark_all_deleted($INI->{delete_all_criteria});
+}
+
+sub delete_missinng {
+	say_timed "checking for missing files";
+	WallpaperList::mark_missing_as_deleted(1);
 }
 
 sub delete_deleted {

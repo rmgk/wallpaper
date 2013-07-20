@@ -87,7 +87,7 @@ sub get_pos {
 	return $DBH->selectrow_array("SELECT position FROM wallpaper WHERE sha1 = ?",undef,$sha)
 }
 
-#$sha
+#$sha, $value
 #markes $sha as deleted
 sub mark_deleted {
 	my ($sha, $value) = @_;
@@ -100,6 +100,22 @@ sub mark_deleted {
 sub mark_all_deleted {
 	my ($criteria) = @_;
 	$DBH->do("UPDATE wallpaper SET deleted = 1 WHERE ($criteria) ");
+	$DBH->commit();
+}
+
+#$value
+# marks all wallpapers not on disk as deleted with value
+sub mark_missing_as_deleted {
+	my ($value) = @_;
+	my $paths = $DBH->selectcol_arrayref("SELECT path FROM wallpaper WHERE deleted IS NULL AND path IS NOT NULL");
+
+	for my $path (@$paths) {
+		if (! -e $WP_PATH . $path) {
+			say $path;
+			$DBH->do("UPDATE wallpaper SET deleted = ? WHERE path = ?", undef, $value, $path);
+		}
+	}
+
 	$DBH->commit();
 }
 
