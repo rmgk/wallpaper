@@ -81,7 +81,7 @@ sub usage {
 	say "\tdelete - move to trash_path";
 	say "\tdelete_all - mark all matching delete_criteria as deleted";
 	say "\tdelete_deleted - move all files marked as deleted to trash";
-	say "\delete_missing - mark all wallpapers that are missing on disk as manually deleted";
+	say "\tdelete_missing - mark all wallpapers that are missing on disk as manually deleted";
 	say "\texport - export selection to export_path";
 	say "\tfav - set favourite flag";
 	say "\thash_all - hash all unhashed files";
