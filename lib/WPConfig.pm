@@ -60,7 +60,7 @@ sub save {
 	print $f join( "\n",
 		map {$_ . '=' . $config->{$_} }
 			grep { $config->{$_} ne ($def_cfg{$_}//'') }
-				keys %$config );
+				sort keys %$config );
 	close $f;
 }
 
