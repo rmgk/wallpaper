@@ -292,7 +292,8 @@ sub exec_command {
 	$command = $INI->{command_convert_set} if $type eq "convert_set";
 	$command = $INI->{command_convert} if $type eq "convert";
 	$command = $INI->{command_set} if $type eq "set";
-	$command = $INI->{command_open} if $type eq "open";
+	$command = $INI->{command_open_file} if $type eq "open_file";
+	$command = $INI->{command_open_url} if $type eq "open_url";
 	die "unknown command type: $type" unless $command;
 
 	my @command = split /\s+/, $command;
@@ -366,7 +367,7 @@ sub upload {
 	my $path = WallpaperList::get_path($sha);
 	$path = $INI->{wp_path} . $path;
 	my $url = UploadTools::upload($path);
-	exec_command("open", path => $url);
+	exec_command("open_url", path => $url);
 }
 
 sub teu {
@@ -381,7 +382,7 @@ sub open_wallpaper {
 	my $sha = $INI->{current};
 	my $path = WallpaperList::get_path($sha);
 	say_timed "Calling system";
-	exec_command("open", path => $INI->{wp_path} . $path);
+	exec_command("open_file", path => $INI->{wp_path} . $path);
 }
 
 sub lock_check {
