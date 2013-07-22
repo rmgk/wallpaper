@@ -284,6 +284,7 @@ sub exec_command {
 	$command = $INI->{command_convert_set} if $type eq "convert_set";
 	$command = $INI->{command_convert} if $type eq "convert";
 	$command = $INI->{command_set} if $type eq "set";
+	$command = $INI->{command_open} if $type eq "open";
 	die "unknown command type: $type" unless $command;
 
 	my @command = split /\s+/, $command;
@@ -384,7 +385,7 @@ sub open_wallpaper {
 	my $sha = $INI->{current};
 	my $path = WallpaperList::get_path($sha);
 	say_timed "Calling system";
-	system($INI->{wp_path} . $path );
+	exec_command("open", path => $INI->{wp_path} . $path);
 }
 
 sub lock_check {
