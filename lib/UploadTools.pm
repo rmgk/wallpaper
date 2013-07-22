@@ -13,7 +13,7 @@ my $hasClipboard = eval { require Win32::Clipboard; };
 # -> $ua
 #initialises the user agent
 sub init_ua {
-	my $ua = new LWP::UserAgent;  
+	my $ua = new LWP::UserAgent;
 	$ua->agent("wpc.pl");
 	$ua->env_proxy;
 	return $ua;
@@ -24,14 +24,14 @@ sub init_ua {
 sub teu {
 	my $file = shift;
 	my $ua = init_ua();
-	
+
 	say "posting file";
 	my $request = POST 'http://www.tineye.com/search' ,
 			Content_Type => 'form-data',
-			Content      => [ 
+			Content      => [
 								image   => [$file],
 							];
-							
+
 	my $response = $ua->request($request);
 	if ($hasClipboard) {
 		say "setting clipboard";
@@ -54,8 +54,7 @@ sub upload {
 	else {
 		say "install Win32::Clipboard to get the uploaded link directly into your clipboard";
 	}
-	say "calling system";
-	system("start " . $url);
+	return $url;
 }
 
 #$file
@@ -87,7 +86,7 @@ sub tpu {
 	say "uploading file";
 	$request = POST $server ,
 			Content_Type => 'form-data',
-			Content      => [ 
+			Content      => [
 								the_file   => [$file],
 								UPLOAD_IDENTIFIER => $UI,
 								upk => $upk,
@@ -96,12 +95,12 @@ sub tpu {
 								file_type => "image",
 								dimension => "1600",
 							];
-							
+
 	$response = $ua->request($request);
-	
+
 	say "getting direct link";
 	$content = $response->content();
-	
+
 	$content =~ m#<a href="([^"]+)" target="_blank">Click here</a> to view your image#si;
 
 	$request = HTTP::Request->new(GET => $1);
@@ -120,10 +119,10 @@ sub directupload {
 	say "uploading file";
 	my $request = POST 'http://www.directupload.net/index.php?mode=upload' ,
 			Content_Type => 'multipart/form-data',
-			Content      => [ 
+			Content      => [
 								bilddatei   => [$file],
 							];
-							
+
 	my $response = $ua->request($request);
 	my $body = $response->content();
 	$body =~ m#(http://\w+.directupload.net/images/\w+/\w+\.\w{3,4})#i;

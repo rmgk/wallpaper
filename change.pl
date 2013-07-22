@@ -240,7 +240,7 @@ sub gen_wp {
 	if (! $INI->{gen_path}) {
 		if ($set_wp) {
 			# no gen path, but still should set wallpaper
-			set_wallpaper($rel_path, $sha);
+			return !set_wallpaper($rel_path, $sha);
 		}
 		return 1;
 	}
@@ -263,8 +263,6 @@ sub gen_wp {
 			gen_path => $gen_path,
 			);
 
-		#my $ret = system('wpt.exe', ':convert' . ($set_wp?'set':''), $path, "generated/$sha");
-
 		if ($ret) { #returns true on failure
 			say_timed "\twallpaper failed checks, removing from rotation";
 			WallpaperList::mark_deleted($sha, 2);
@@ -273,9 +271,19 @@ sub gen_wp {
 
 	}
 	elsif($set_wp) {
-		set_wallpaper($rel_path, $sha);
+		return !set_wallpaper($rel_path, $sha);
 	}
 	return 1;
+}
+
+
+sub set_wallpaper {
+	my ($rel_path, $sha) = @_;
+	return exec_command("set",
+		path => $INI->{wp_path} . $rel_path,
+		sha => $sha,
+		gen_path => $INI->{gen_path} . $sha,
+		);
 }
 
 sub exec_command {
@@ -338,19 +346,6 @@ sub get_data {
 	return ($path,$sha);
 }
 
-sub set_wallpaper {
-	my ($rel_path, $sha) = @_;
-	# say_timed "Set Wallpaper $sha $rel_path";
-	# Wallpaper::setWallpaper($INI->{gen_path} . $wp);
-	exec_command("set",
-		path => $INI->{wp_path} . $rel_path,
-		sha => $sha,
-		gen_path => $INI->{gen_path} . $sha,
-		);
-	#system('wpt.exe', ':set', $INI->{gen_path} . $wp);
-	return 1;
-}
-
 sub export {
 	my $export_dir = $INI->{export_path};
 	my $export_criteria = $INI->{export_criteria};
@@ -370,7 +365,8 @@ sub upload {
 	my $sha = $INI->{current};
 	my $path = WallpaperList::get_path($sha);
 	$path = $INI->{wp_path} . $path;
-	UploadTools::upload($path);
+	my $url = UploadTools::upload($path);
+	exec_command("open", path => $url);
 }
 
 sub teu {
