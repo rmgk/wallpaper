@@ -27,7 +27,7 @@ global $exepath = "wperl change.pl "
 for $i = 1 to UBound($button) - 1
 	$button[$i][0] = Number($button[$i][0])
 	$button[$i][1] = $exepath & $button[$i][1]
-next 
+next
 for $i = 1 to UBound($pov) - 1
 	$pov[$i][0] = Number($pov[$i][0])
 	$pov[$i][1] = $exepath & $pov[$i][1]
@@ -35,10 +35,10 @@ next
 for $i = 1 to UBound($axis) - 1
 	$axis[$i][0] = Number($axis[$i][0])
 	$axis[$i][1] = $exepath & $axis[$i][1]
-next 
+next
 for $i = 1 to UBound($key) - 1
 	$key[$i][1] = $exepath & $key[$i][1]
-next 
+next
 
 $state = _GetJoy($joy,0)
 
@@ -48,13 +48,13 @@ while 1
     $state = _GetJoy($joy,0)
 	for $i = 1 to UBound($button) - 1
 		if button($button[$i][0]) then dispatch($button[$i][1])
-	next 
+	next
 	for $i = 1 to UBound($pov) - 1
 		if pov($pov[$i][0]) then dispatch($pov[$i][1])
-	next 
+	next
 	for $i = 1 to UBound($axis) - 1
 		if axis($axis[$i][0]) then dispatch($axis[$i][1])
-	next 
+	next
 	sleep(10)
 	if $hotkeytimeout > 0 then
 		tooltip($hotkeytimeout)
@@ -76,21 +76,21 @@ EndFunc
 Func hotkeyPressed()
 	for $i = 1 to UBound($key) - 1
 		if @HotKeyPressed = $key[$i][0] then dispatch($key[$i][1] )
-	next 
+	next
 	$hotkeytimeout = 2000
 EndFunc
 
 func setHotkeys()
 	for $i = 1 to UBound($key) - 1
 		HotKeySet($key[$i][0], "hotkeyPressed")
-	next 
+	next
 	$hotkeytimeout = 2000
 EndFunc
 
 Func unsetHotkeys()
 	for $i = 1 to UBound($key) - 1
 		HotKeySet($key[$i][0])
-	next 
+	next
 	$hotkeytimeout = 0
 	tooltip("");
 EndFunc
@@ -104,7 +104,7 @@ Func axis($id)
 	if $id > 0 then
 		if $state[$sid] >= $AMAX and $last_state[$sid] < $AMAX then return true
 		return false
-	endif 
+	endif
 EndFunc
 
 Func button($id)
@@ -120,9 +120,9 @@ EndFunc
 
 Func toggle()
 		$pause = NOT $pause
-		if $pause then 
+		if $pause then
 			unsetHotkeys()
-		else 
+		else
 			setHotkeys()
 		endif
 EndFunc
