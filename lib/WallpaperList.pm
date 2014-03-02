@@ -65,11 +65,11 @@ sub gen_sha {
 				$DBH->do("UPDATE wallpaper SET path = ?, deleted = NULL WHERE sha1 = ?",undef, $path, $sha);
 				$double = undef;
 			}
-			$DBH->commit();
+			# $DBH->commit();
 			return ($path,$sha,$double);
 		}
 	}
-	$DBH->commit();
+	# $DBH->commit();
 	return ($path, $sha);
 }
 
@@ -92,7 +92,7 @@ sub get_pos {
 sub mark_deleted {
 	my ($sha, $value) = @_;
 	$DBH->do("UPDATE wallpaper SET deleted = ?, position = - _rowid_ WHERE sha1 = ?", undef, $value, $sha);
-	$DBH->commit();
+	# $DBH->commit();
 }
 
 #$criteria -> \@[$path,$sha]
@@ -100,7 +100,7 @@ sub mark_deleted {
 sub mark_all_deleted {
 	my ($criteria) = @_;
 	$DBH->do("UPDATE wallpaper SET deleted = 1 WHERE ($criteria) ");
-	$DBH->commit();
+	# $DBH->commit();
 }
 
 #$value
@@ -116,7 +116,7 @@ sub mark_missing_as_deleted {
 		}
 	}
 
-	$DBH->commit();
+	# $DBH->commit();
 }
 
 #$sha
@@ -125,7 +125,7 @@ sub remove_position {
 	my ($sha) = shift;
 	# my $position = $DBH->selectrow_array("SELECT position FROM wallpaper WHERE sha1 = ?",undef,$sha);
 	$DBH->do("UPDATE wallpaper SET position = - _rowid_ WHERE sha1 = ?", undef, $sha);
-	$DBH->commit();
+	# $DBH->commit();
 }
 
 #$sha
@@ -133,7 +133,7 @@ sub remove_position {
 sub set_fav {
 	my $sha = shift;
 	$DBH->do("UPDATE wallpaper SET fav = 1 WHERE sha1 = ?", undef, $sha);
-	$DBH->commit();
+	# $DBH->commit();
 }
 
 #$sha, $vote
@@ -142,7 +142,7 @@ sub vote {
 	my ($sha,$vote) = @_;
 	$DBH->do("UPDATE OR FAIL wallpaper SET vote = ? WHERE sha1 = ?", undef, $vote, $sha)
 		or die 'failed to update vote';
-	$DBH->commit();
+	# $DBH->commit();
 }
 
 #$sha
@@ -150,7 +150,7 @@ sub vote {
 sub set_nsfw {
 	my $sha = shift;
 	$DBH->do("UPDATE wallpaper SET nsfw = 1 WHERE sha1 = ?", undef, $sha);
-	$DBH->commit();
+	# $DBH->commit();
 }
 
 #$sha
@@ -158,7 +158,7 @@ sub set_nsfw {
 sub set_sketchy {
 	my $sha = shift;
 	$DBH->do("UPDATE wallpaper SET nsfw = 0 WHERE sha1 = ?", undef, $sha);
-	$DBH->commit();
+	# $DBH->commit();
 }
 
 #$sha
@@ -166,7 +166,7 @@ sub set_sketchy {
 sub purge {
 	my $sha = shift;
 	$DBH->do("UPDATE wallpaper SET nsfw = NULL, fav = NULL, vote = NULL WHERE sha1 = ?", undef, $sha);
-	$DBH->commit();
+	# $DBH->commit();
 }
 
 # -> $max_pos
@@ -205,14 +205,14 @@ sub determine_order {
 	my $from = (max_pos() // 0) + 1;
 	my $to = $from - 1 + @ids;
 	$sth->execute_array(undef, [shuffle ($from..$to)], \@ids);
-	$DBH->commit();
+	# $DBH->commit();
 	$DBH->{AutoCommit} = $old_autocommit;
 }
 
 #removes the order
 sub remove_order {
 	$DBH->do("UPDATE wallpaper SET position = NULL");
-	$DBH->commit();
+	# $DBH->commit();
 }
 
 #$base
@@ -249,7 +249,7 @@ sub _add_folder {
 	}
 
 	closedir($PIC);
-	$DBH->commit();
+	# $DBH->commit();
 }
 
 #$path
@@ -267,6 +267,11 @@ sub vacuum {
 	$DBH->{AutoCommit} = 1;
 	$DBH->do('vacuum');
 	$DBH->{AutoCommit} = $old_autocommit;
+}
+
+#manually commits the database
+sub commit {
+	$DBH->commit();
 }
 
 1;
