@@ -171,7 +171,7 @@ sub delete_all {
 
 sub delete_missinng {
 	say_timed "checking for missing files";
-	WallpaperList::mark_missing_as_deleted(1);
+	WallpaperList::mark_missing_as_deleted(-1);
 }
 
 sub delete_deleted {
