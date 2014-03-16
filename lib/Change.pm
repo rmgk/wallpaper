@@ -44,7 +44,7 @@ sub commit {
 }
 
 sub dispatch {
-	given ($_[0]) {
+	for (@_) {
 		when(undef) { usage() };
 		when('delete') { delete_wp() };
 		when('delete_all') { delete_all() };

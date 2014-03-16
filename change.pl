@@ -20,10 +20,10 @@ use Change;
 # flock $self_lock, LOCK_EX | LOCK_NB or die "This script is already running";
 
 Change::reload();
+
 @ARGV or Change::usage();
-foreach (@ARGV) {
-	Change::dispatch($_);
-}
+
+Change::dispatch(@ARGV);
 
 Change::cleanup_generated_wallpapers();
 

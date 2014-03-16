@@ -21,7 +21,7 @@ use Data::Dumper;
 SDL::init(SDL_INIT_VIDEO); # Event can only be grabbed in the same thread as this
 SDL::init_sub_system(SDL_INIT_JOYSTICK);
 
-my @joysticks = map {SDL::Joystick->new($_)} 0 .. SDL::Joystick::num_joysticks() - 1;
+# my @joysticks = map {SDL::Joystick->new($_)} 0 .. SDL::Joystick::num_joysticks() - 1;
 my $event = SDL::Event->new(); # notices 'Event' ne 'Events'
 
 while (SDL::Events::wait_event($event)) {
@@ -46,9 +46,9 @@ sub handle_button {
 	Change::reload();
 	given($button) {
 		# ;button 1 (a)
-		when(0) { dispatch("votedown"); dispatch(1); }
+		when(0) { dispatch("votedown", 1); }
 		# ;button 2 (b)
-		when(1) { dispatch("voteup"); dispatch(1); }
+		when(1) { dispatch("voteup", 1); }
 		# ;button 3 (x)
 		when(2) { dispatch(-1); }
 		# ;button 4 (y)
@@ -74,17 +74,6 @@ sub handle_button {
 	Change::cleanup_generated_wallpapers();
 	Change::commit();
 }
-
-# 1=votedown 1 pregen
-# 2=voteup 1 pregen
-# 4=-1 pregen
-# 8=sketchy
-# 16=teu
-# 32=upload
-# 64=rand
-# 128=fav
-# 256=purge
-# 512=nsfw
 
 sub handle_hat {
 	my ($hat, $dir) = @_;
