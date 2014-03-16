@@ -21,10 +21,12 @@ use Data::Dumper;
 SDL::init(SDL_INIT_VIDEO); # Event can only be grabbed in the same thread as this
 SDL::init_sub_system(SDL_INIT_JOYSTICK);
 
-# my @joysticks = map {SDL::Joystick->new($_)} 0 .. SDL::Joystick::num_joysticks() - 1;
+my @joysticks = map {SDL::Joystick->new($_)} 0 .. SDL::Joystick::num_joysticks() - 1;
 my $event = SDL::Event->new(); # notices 'Event' ne 'Events'
 
-while (SDL::Events::wait_event($event)) {
+my $DONE = 0;
+
+while (not $DONE and SDL::Events::wait_event($event)) {
 	given($event->type) {
 		when(SDL_JOYBUTTONDOWN) {
 			handle_button($event->jbutton_button);
@@ -35,6 +37,10 @@ while (SDL::Events::wait_event($event)) {
 		when(SDL_JOYAXISMOTION) {
 			handle_axis($event->jaxis_axis, int($event->jaxis_value/20000));
 		}
+		when(SDL_QUIT) {
+			$DONE = 1;
+		}
+		say "unknown event: ", $event->type;
 	}
 	while (SDL::Events::poll_event($event)) {};
 }
