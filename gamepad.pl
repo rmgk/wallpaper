@@ -61,8 +61,8 @@ sub handle_button {
 		when(3) { dispatch("sketchy"); }
 		# ;left shoulder
 		when(4) {
-			my $stat = WallpaperList::get_stat($Change::INI->{current});
-			`notify-send "$stat->{path}"`;
+			my %stat = WallpaperList::get_stat($Change::INI->{current});
+			`notify-send "$stat{path}"`;
 		}
 		# ;right shoulder
 		when(5) { dispatch("upload"); }
