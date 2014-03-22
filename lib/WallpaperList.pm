@@ -239,7 +239,7 @@ sub _add_folder {
 	while(my $x = readdir($PIC)) {
 		next if $x =~ m/^\.{1,2}$/;
 		if (-d $base.$path.$x) {
-			_add_folder($base,$path.$x.'\\');
+			_add_folder($base,$path.$x.'/');
 		}
 		elsif (-f _) {
 			if ($x =~ m/\.(jpe?g|gif|png|bmp)$/i) {
