@@ -191,8 +191,19 @@ sub get_deleted {
 #$sha -> \%{column => value}
 sub get_stat {
 	my $sha = shift;
-	return $DBH->selectrow_hashref("SELECT * FROM wallpaper WHERE sha1 = ?",undef , $sha);
+	return %{$DBH->selectrow_hashref("SELECT * FROM wallpaper WHERE sha1 = ?",undef , $sha)};
 }
+
+
+#get global stats
+sub get_global_stats {
+	last => max_pos(),
+	favourites => $DBH->selectrow_array("select count(*) from wallpaper where fav > 0 and deleted is null"),
+	nsfw => $DBH->selectrow_array("select count(*) from wallpaper where nsfw = 1 and vote > 0 and deleted is null"),
+	sektchy => $DBH->selectrow_array("select count(*) from wallpaper where nsfw = 0 and vote > 0 and deleted is null"),
+	normal => $DBH->selectrow_array("select count(*) from wallpaper where fav is null and nsfw is null and deleted is null"),
+}
+
 
 #creates a random position value for each entry
 sub determine_order {

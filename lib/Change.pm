@@ -147,12 +147,15 @@ sub purge {
 }
 
 sub show_wp_stat {
-	my $stat = WallpaperList::get_stat($INI->{current});
-	my $max_pos = WallpaperList::max_pos();
-	say "STATS: ";
-	say "\tlast position: ", $max_pos;
-	foreach (keys %$stat) {
-		say "\t$_: " . (defined $stat->{$_} ? $stat->{$_} : "undef");
+	my %gstat = WallpaperList::get_global_stats();
+	my %stat = WallpaperList::get_stat($INI->{current});
+	say "STATS (global): ";
+	foreach (sort keys %gstat) {
+		say "\t$_: " . (defined $gstat{$_} ? $gstat{$_} : "undef");
+	}
+	say "STATS (current): ";
+	foreach (sort keys %stat) {
+		say "\t$_: " . (defined $stat{$_} ? $stat{$_} : "undef");
 	}
 }
 
