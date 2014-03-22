@@ -202,6 +202,7 @@ sub get_global_stats {
 	nsfw => $DBH->selectrow_array("select count(*) from wallpaper where nsfw = 1 and vote > 0 and deleted is null"),
 	sektchy => $DBH->selectrow_array("select count(*) from wallpaper where nsfw = 0 and vote > 0 and deleted is null"),
 	normal => $DBH->selectrow_array("select count(*) from wallpaper where fav is null and nsfw is null and deleted is null"),
+	total => $DBH->selectrow_array("select count(*) from wallpaper"),
 }
 
 
