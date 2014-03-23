@@ -49,7 +49,7 @@ sub dispatch {
 		when('delete') { delete_wp() };
 		when('delete_all') { delete_all() };
 		when('delete_deleted') { delete_deleted() };
-		when('delete_missing') { delete_missinng() };
+		when('delete_missing') { delete_missing() };
 		when('export') { export() };
 		when('fav') { set_fav() };
 		when('hash_all') { hash_all() };
@@ -172,7 +172,7 @@ sub delete_all {
 	my $list = WallpaperList::mark_all_deleted($INI->{delete_all_criteria});
 }
 
-sub delete_missinng {
+sub delete_missing {
 	say_timed "checking for missing files";
 	WallpaperList::mark_missing_as_deleted(-1);
 }

@@ -112,7 +112,7 @@ sub mark_missing_as_deleted {
 	for my $path (@$paths) {
 		if (! -e $WP_PATH . $path) {
 			say $path;
-			$DBH->do("UPDATE wallpaper SET deleted = ? WHERE path = ?", undef, $value, $path);
+			$DBH->do("UPDATE wallpaper SET deleted = ?, position = null WHERE path = ?", undef, $value, $path);
 		}
 	}
 
