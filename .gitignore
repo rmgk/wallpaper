@@ -17,6 +17,7 @@
 *.suo
 *.tlog
 *bak
+.Sync*
 config.ini
 desktop.ini
 favourites
