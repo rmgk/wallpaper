@@ -126,9 +126,16 @@ sub directupload {
 							];
 
 	my $response = $ua->request($request);
-	my $body = $response->content();
-	$body =~ m#(http://\w+.directupload.net/images/\w+/\w+\.\w{3,4})#i;
-	return $1;
+
+	if ($response->is_success) {
+		my $body = $response->content();
+		$body =~ m#(http://\w+.directupload.net/images/\w+/\w+\.\w{3,4})#i;
+		return $1;
+	}
+	else {
+		say "failed to upload ", $response->status_line;
+		return;
+	}
 }
 
 

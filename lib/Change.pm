@@ -368,7 +368,7 @@ sub upload {
 	my $path = WallpaperList::get_path($sha);
 	$path = $INI->{wp_path} . $path;
 	my $url = UploadTools::upload($path);
-	exec_command("open_url", path => $url);
+	exec_command("open_url", path => $url) if ($url);
 }
 
 sub teu {
