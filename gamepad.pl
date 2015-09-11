@@ -67,7 +67,7 @@ sub handle_button {
 		# ;right shoulder
 		when(5) { dispatch("upload"); }
 		# ;select
-		when(6) { dispatch("rand"); }
+		when(6) { dispatch("sfw"); }
 		# ;start
 		when(7) { dispatch("fav"); }
 		# ;xbox button
