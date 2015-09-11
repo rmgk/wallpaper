@@ -60,6 +60,7 @@ sub dispatch {
 		when('rand') { rand_wp() };
 		when('reorder') { reorder_wp(); };
 		when('rescan') { index_wp_path() };
+		when('sfw') { set_sfw() };
 		when('sketchy') { set_sketchy() };
 		when('stat') { show_wp_stat() };
 		when('teu') { teu() };
@@ -89,6 +90,7 @@ sub usage {
 	say "\trand - select a random wallpaper based on rand_criteria";
 	say "\treorder - recreates the order of the wallpapers according to the order_criteria";
 	say "\trescan - rescans the wp_path for wallpapers";
+	say "\tsfw - sets the nsfw level to sfw";
 	say "\tsketchy - sets the nsfw level to sketchy";
 	say "\tstat - displays statistics for the current image";
 	say "\tteu - search with tineye";
@@ -131,14 +133,21 @@ sub set_fav {
 	WallpaperList::set_fav($INI->{current});
 }
 
+my ($L_NSFW, $L_SKETCHY, $L_SFW) = (1, 0, -1);
+
 sub set_nsfw {
 	say "NSFW: " . $INI->{current};
-	WallpaperList::set_nsfw($INI->{current});
+	WallpaperList::set_nsfw($INI->{current}, $L_NSFW);
 }
 
 sub set_sketchy {
 	say "Sketchy: " . $INI->{current};
-	WallpaperList::set_sketchy($INI->{current});
+	WallpaperList::set_sketchy($INI->{current}, $L_SKETCHY);
+}
+
+sub set_sfw {
+	say "Safe for Work: " . $INI->{current};
+	WallpaperList::set_sfw($INI->{current}, $L_SFW);
 }
 
 sub purge {

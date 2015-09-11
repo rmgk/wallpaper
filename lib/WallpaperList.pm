@@ -148,16 +148,8 @@ sub vote {
 #$sha
 #sets nsfw for $sha
 sub set_nsfw {
-	my $sha = shift;
-	$DBH->do("UPDATE wallpaper SET nsfw = 1 WHERE sha1 = ?", undef, $sha);
-	# $DBH->commit();
-}
-
-#$sha
-#sets sketchy for $sha
-sub set_sketchy {
-	my $sha = shift;
-	$DBH->do("UPDATE wallpaper SET nsfw = 0 WHERE sha1 = ?", undef, $sha);
+	my ($sha, $level) = @_;
+	$DBH->do("UPDATE wallpaper SET nsfw = ? WHERE sha1 = ?", undef, $level, $sha);
 	# $DBH->commit();
 }
 
