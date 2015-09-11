@@ -40,6 +40,7 @@ while (not $DONE and SDL::Events::wait_event($event)) {
 		when(SDL_QUIT) {
 			$DONE = 1;
 		}
+		when(SDL_JOYBUTTONUP) {}
 		say "unknown event: ", $event->type;
 	}
 	while (SDL::Events::poll_event($event)) {};
