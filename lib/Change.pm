@@ -142,12 +142,12 @@ sub set_nsfw {
 
 sub set_sketchy {
 	say "Sketchy: " . $INI->{current};
-	WallpaperList::set_sketchy($INI->{current}, $L_SKETCHY);
+	WallpaperList::set_nsfw($INI->{current}, $L_SKETCHY);
 }
 
 sub set_sfw {
 	say "Safe for Work: " . $INI->{current};
-	WallpaperList::set_sfw($INI->{current}, $L_SFW);
+	WallpaperList::set_nsfw($INI->{current}, $L_SFW);
 }
 
 sub purge {
