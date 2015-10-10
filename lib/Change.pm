@@ -47,8 +47,8 @@ sub dispatch {
 	for (@_) {
 		when(undef) { usage() };
 		when('delete') { delete_wp() };
-		when('delete_all') { delete_all() };
-		when('delete_deleted') { delete_deleted() };
+		when('delete_marked') { delete_marked() };
+		when('remove_deleted') { remove_deleted() };
 		when('delete_missing') { delete_missing() };
 		when('export') { export() };
 		when('fav') { set_fav() };
@@ -77,8 +77,8 @@ sub dispatch {
 sub usage {
 	say "\nThe following commandline options are available:\n";
 	say "\tdelete - move to trash_path";
-	say "\tdelete_all - mark all matching delete_criteria as deleted";
-	say "\tdelete_deleted - move all files marked as deleted to trash";
+	say "\tdelete_marked - mark all matching delete_criteria as deleted";
+	say "\tremove_deleted - move all files marked as deleted to trash";
 	say "\tdelete_missing - mark all wallpapers that are missing on disk as manually deleted";
 	say "\texport - export selection to export_path";
 	say "\tfav - set favourite flag";
@@ -176,7 +176,7 @@ sub delete_wp {
 	_delete($path,$sha);
 }
 
-sub delete_all {
+sub delete_marked {
 	say_timed "marking as deleted";
 	my $list = WallpaperList::mark_all_deleted($INI->{delete_all_criteria});
 }
@@ -186,7 +186,7 @@ sub delete_missing {
 	WallpaperList::mark_missing_as_deleted(-1);
 }
 
-sub delete_deleted {
+sub remove_deleted {
 	my $list = WallpaperList::get_deleted();
 	foreach (@$list) {
 		_delete(@$_);
