@@ -27,9 +27,10 @@ namespace wpc
 
 
   // image manipulation
-  void annotate(Magick::Image& image, const std::string& text, const Magick::Geometry& geo);
+  void annotate(Magick::Image& image, const std::string& text, const Magick::Geometry& geo, Magick::GravityType gravity);
+  void positionAnnotation(const RECT& area, const RECT& warea, Magick::Image& image, const std::string& text, const Magick::Geometry& geo, Magick::GravityType gravity);
   void retarget(Magick::Image& image, int x, int y);
-  bool convertWP(const std::wstring& src, const std::wstring& target);
+  bool convertWP(const std::wstring& src, const std::wstring& target, const Magick::Geometry& textPlacementPosition, Magick::GravityType textGravity);
 
   void frame(Magick::Image& image,int x, int y);
   Magick::Color getBorderColor(Magick::Image& image, Magick::GravityType border);
@@ -70,13 +71,21 @@ int wmain( int argc, wchar_t ** argv)
     wstring infile;
     wstring outfile = wpc::make_absolute(L"wallpaper");
 
+	auto annotationPosition = Geometry(0,0,1,3);
+	Magick::GravityType annotationGravity = Magick::SouthEastGravity;
+
+	if (argc > 5) {
+		annotationPosition = Geometry(CW2A(argv[4], CP_UTF8));
+		annotationGravity = static_cast<GravityType>(std::stoi(argv[5]));
+	}
+
     if (argc == 1) {
       cout << L"<path>" << endl;
       return -1;
     }
     else if (argc == 2) {
       infile = wpc::make_absolute(argv[1]);
-      wpc::convertWP(infile, outfile);
+      wpc::convertWP(infile, outfile, annotationPosition, annotationGravity);
       wpc::setWP(&*outfile.begin());
       infile[0];
     }
@@ -89,7 +98,7 @@ int wmain( int argc, wchar_t ** argv)
         }
         infile = wpc::make_absolute(argv[2]);
         outfile = wpc::make_absolute(argv[3]);
-        wpc::convertWP(infile,outfile);
+        wpc::convertWP(infile,outfile, annotationPosition, annotationGravity);
       }
       else if (command == L":convertset") {
         if (argc < 4) {
@@ -98,7 +107,7 @@ int wmain( int argc, wchar_t ** argv)
         }
         infile = wpc::make_absolute(argv[2]);
         outfile = wpc::make_absolute(argv[3]);
-        wpc::convertWP(infile,outfile);
+        wpc::convertWP(infile,outfile, annotationPosition, annotationGravity);
         wpc::setWP(&*outfile.begin());
       }
       else if (command == L":set") {
@@ -201,9 +210,9 @@ Color wpc::getBorderColor(Image& image, GravityType border)
       case SouthGravity : c = image.pixelColor(i,image.rows()-1); break; //unten
       default: c = Color("green");
     }
-    short r = c.redQuantum()/16;
-    short g = c.greenQuantum()/16;
-    short b = c.blueQuantum()/16;
+    short r = c.quantumRed()/16;
+    short g = c.quantumGreen()/16;
+    short b = c.quantumBlue()/16;
     int j = ++count[r][g][b];
     if (j > most_count) {
       most_count = j;
@@ -211,13 +220,13 @@ Color wpc::getBorderColor(Image& image, GravityType border)
       most[1] = g;
       most[2] = b;
     }
-    red[r][g][b] += c.redQuantum();
-    green[r][g][b] += c.greenQuantum();
-    blue[r][g][b] += c.blueQuantum();
+    red[r][g][b] += c.quantumRed();
+    green[r][g][b] += c.quantumGreen();
+    blue[r][g][b] += c.quantumBlue();
 
-    average[0] += c.redQuantum();
-    average[1] += c.greenQuantum();
-    average[2] += c.blueQuantum();
+    average[0] += c.quantumRed();
+    average[1] += c.quantumGreen();
+    average[2] += c.quantumBlue();
   }
 
   if (most_count > i_max/20.0)
@@ -275,7 +284,7 @@ void wpc::retarget(Image& image, int x, int y)
   }
 }
 
-void wpc::annotate(Image& image, const std::string& text, const Geometry& geo)
+void wpc::annotate(Image& image, const std::string& text, const Geometry& geo, Magick::GravityType gravity)
 {
   image.strokeAntiAlias(true);
   Color old = image.strokeColor();
@@ -283,17 +292,35 @@ void wpc::annotate(Image& image, const std::string& text, const Geometry& geo)
   image.fontPointsize(14);
   image.strokeColor("rgba(0,0,0,0.3)");
   image.strokeWidth(3);
-  image.annotate(text,geo,SouthEastGravity);
+  image.annotate(text,geo, gravity);
   image.strokeColor(old);
   old = image.fillColor();
   image.fillColor("rgba(255,255,255,0.9)");
   image.strokeWidth(2);
-  image.annotate(text,geo,SouthEastGravity);
+  image.annotate(text,geo, gravity);
   image.fillColor(old);
 }
 
+void wpc::positionAnnotation(const RECT& area, const RECT& warea, Magick::Image& image, const std::string& text, const Magick::Geometry& geo, Magick::GravityType gravity) 
+{
+	auto geoCopy(geo);
+	if (gravity % 3 == 0) {
+		geoCopy.xOff(geoCopy.xOff() + area.right - warea.right);
+	}
+	if (gravity % 3 == 1) {
+		geoCopy.xOff(geoCopy.xOff() - area.left + warea.left);
+	}
+	if ((gravity - 1) / 3 == 0) {
+		geoCopy.yOff(geoCopy.yOff() - area.top + warea.top);
+	}
+	if ((gravity - 1) / 3 == 2) {
+		geoCopy.yOff(geoCopy.yOff() + area.bottom - warea.bottom);
+	}
+	
+	wpc::annotate(image, text, geoCopy, gravity);
+}
 
-bool wpc::convertWP(const wstring& src, const wstring& target)
+bool wpc::convertWP(const wstring& src, const wstring& target, const Geometry& textPlacementPosition, Magick::GravityType textGravity)
 {
   using namespace std;
 
@@ -335,13 +362,13 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
   string annotation(CW2A(src.c_str(),CP_UTF8));
 
   bool win8 = isWin8orLater();
-  Image canvas;
+  Image canvas("1x1", "pink");
   // first case tries to handle multi monitor images … experimental!
-  if (similarAspect(orig.columns(), orig.rows(), width_total, height_total) && win8) {
+  if (similarAspect(orig.columns(), orig.rows(), width_total, height_total) && win8 && numScreens > 1) {
     wpc::retarget(orig, width_total, height_total);
     const auto& ls = env.working_areas[numScreens - 1];
     auto geo = Geometry(ls.right - leftmost_coordinate,ls.bottom - topmost_coordinate,1,3);
-    wpc::annotate(orig,annotation,geo);
+    wpc::annotate(orig,annotation,geo, textGravity);
     canvas = orig;
   }
   else if (numScreens > 1) {
@@ -354,8 +381,7 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
       if (i == numScreens - 1) {
         const auto& area = env.areas[i];
         const auto& warea = env.working_areas[i];
-        auto geo = Geometry(0,0,area.right - warea.right + 1, area.bottom - warea.bottom + 3);
-        wpc::annotate(temp,annotation,geo);
+		positionAnnotation(area, warea, temp, annotation, textPlacementPosition, textGravity);
       }
 
       int x = screens[i].left;
@@ -393,8 +419,7 @@ bool wpc::convertWP(const wstring& src, const wstring& target)
     wpc::retarget(orig,width[0],height[0]);
     const auto& area = env.areas[0];
     const auto& warea = env.working_areas[0];
-    auto geo = Geometry(0,0,area.right - warea.right + 1, area.bottom - warea.bottom + 3);
-    wpc::annotate(orig,annotation,geo);
+	positionAnnotation(area, warea, orig, annotation, textPlacementPosition, textGravity);
     canvas = orig;
   }
 
