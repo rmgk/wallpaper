@@ -76,10 +76,10 @@ sub dispatch {
 
 sub usage {
 	say "\nThe following commandline options are available:\n";
-	say "\tdelete - move to trash_path";
-	say "\tdelete_marked - mark all matching delete_criteria as deleted";
-	say "\tremove_deleted - move all files marked as deleted to trash";
-	say "\tdelete_missing - mark all wallpapers that are missing on disk as manually deleted";
+	say "\tdelete - mark for deletion";
+	say "\tdelete_marked - mark all matching delete_criteria fore deletion";
+	say "\tremove_deleted - move all files marked for deletion to trash";
+	say "\tdelete_missing - mark all wallpapers that are missing on disk for deletion";
 	say "\texport - export selection to export_path";
 	say "\tfav - set favourite flag";
 	say "\thash_all - hash all unhashed files";
