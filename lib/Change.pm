@@ -232,7 +232,8 @@ sub change_wp {
 	say "\t$rel_path ($pos)";
 
 	unless (gen_wp($rel_path,$sha,"set")) {
-		return change_wp($mv <=> 0);
+		say "setting wallpaper failed";
+		# return change_wp($mv <=> 0);
 	}
 
 	say_timed "Save Config";
