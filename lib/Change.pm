@@ -77,7 +77,7 @@ sub dispatch {
 sub usage {
 	say "\nThe following commandline options are available:\n";
 	say "\tdelete - mark for deletion";
-	say "\tdelete_marked - mark all matching delete_criteria fore deletion";
+	say "\tdelete_marked - mark all matching delete_criteria for deletion";
 	say "\tremove_deleted - move all files marked for deletion to trash";
 	say "\tdelete_missing - mark all wallpapers that are missing on disk for deletion";
 	say "\texport - export selection to export_path";
