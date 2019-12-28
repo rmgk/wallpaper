@@ -169,8 +169,9 @@ sub show_wp_stat {
 }
 
 sub delete_wp {
-	my $pos = shift // $INI->{position};
-	my ($path,$sha) = get_data($pos);
+	my $sha = $INI->{current};
+	say "PURGE: " . $sha;
+	my $path = WallpaperList::get_path($sha);
 	warn "could not get path" and return unless ($path);
 	WallpaperList::mark_deleted($sha, 1);
 	_delete($path,$sha);
