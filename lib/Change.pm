@@ -105,6 +105,7 @@ sub usage {
 sub index_wp_path {
 	say_timed "Indexing wp_path";
 	WallpaperList::add_folder($INI->{wp_path});
+	hash_all();
 	say_timed "Adding Random Order", ;
 	WallpaperList::determine_order($INI->{order_criteria});
 }
