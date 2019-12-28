@@ -1,8 +1,10 @@
 package WallpaperList;
 
-use 5.010;
+use 5.020;
 use strict;
 use warnings;
+use feature qw(signatures);
+no warnings qw(experimental::signatures);
 
 use Carp;
 
@@ -49,25 +51,20 @@ sub get_data {
 #calculates the sha value and updates the database
 #returns undef if sha could not be calculated
 #returns $double if the sha already existed
-sub gen_sha {
-	my ($path, $sha) = @_;
-	if (! -e $WP_PATH . $path) {
+sub gen_sha($path) {
+	my $sha;
+	$sha = $SHA->addfile($WP_PATH . $path,"b")->hexdigest;
+	$sha or die "could not get sha of $path";
+	unless ($DBH->do("UPDATE OR FAIL wallpaper SET sha1 = ? WHERE path = ?",undef,$sha,$path)) {
 		$DBH->do("DELETE FROM wallpaper WHERE path = ?", undef, $path);
-	}
-	else {
-		$sha = $SHA->addfile($WP_PATH . $path,"b")->hexdigest;
-		$sha or die "could not get sha of $path";
-		unless ($DBH->do("UPDATE OR FAIL wallpaper SET sha1 = ? WHERE path = ?",undef,$sha,$path)) {
-			$DBH->do("DELETE FROM wallpaper WHERE path = ?", undef, $path);
-			my ($double, $deleted) = $DBH->selectrow_array("SELECT path, deleted FROM wallpaper WHERE sha1 = ?",undef,$sha);
-			if ((! -e $WP_PATH . $double) and ((! defined $deleted) or !($deleted > 0))) {
-				say "{$path} has same hash as missing {$double}, assuming rename";
-				$DBH->do("UPDATE wallpaper SET path = ?, deleted = NULL WHERE sha1 = ?",undef, $path, $sha);
-				$double = undef;
-			}
-			# $DBH->commit();
-			return ($path,$sha,$double);
+		my ($double, $deleted) = $DBH->selectrow_array("SELECT path, deleted FROM wallpaper WHERE sha1 = ?",undef,$sha);
+		if ((! -e $WP_PATH . $double) and ((! defined $deleted) or !($deleted > 0))) {
+			say "{$path} has same hash as missing {$double}, assuming rename";
+			$DBH->do("UPDATE wallpaper SET path = ?, deleted = NULL WHERE sha1 = ?",undef, $path, $sha);
+			$double = undef;
 		}
+		# $DBH->commit();
+		return ($path,$sha,$double);
 	}
 	# $DBH->commit();
 	return ($path, $sha);
