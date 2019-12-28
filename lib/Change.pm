@@ -47,9 +47,9 @@ sub dispatch {
 	for (@_) {
 		when(undef) { usage() };
 		when('delete') { delete_wp() };
-		when('delete_marked') { delete_marked() };
-		when('remove_deleted') { remove_deleted() };
-		when('delete_missing') { delete_missing() };
+		when('deletion_criteria') { deletion_criteria() };
+		when('trash_deleted') { trash_deleted() };
+		when('detect_missing') { detect_missing() };
 		when('export') { export() };
 		when('fav') { set_fav() };
 		when('hash_all') { hash_all() };
@@ -77,9 +77,9 @@ sub dispatch {
 sub usage {
 	say "\nThe following commandline options are available:\n";
 	say "\tdelete - mark for deletion";
-	say "\tdelete_marked - mark all matching delete_criteria for deletion";
-	say "\tremove_deleted - move all files marked for deletion to trash";
-	say "\tdelete_missing - mark all wallpapers that are missing on disk for deletion";
+	say "\deletion_criteria - mark all matching delete_criteria for deletion";
+	say "\ttrash_deleted - move all files marked for deletion to trash";
+	say "\tdetect_missing - mark all wallpapers that are missing on disk for deletion";
 	say "\texport - export selection to export_path";
 	say "\tfav - set favourite flag";
 	say "\thash_all - hash all unhashed files";
@@ -176,17 +176,17 @@ sub delete_wp {
 	_delete($path,$sha);
 }
 
-sub delete_marked {
+sub deletion_criteria {
 	say_timed "marking as deleted";
 	my $list = WallpaperList::mark_all_deleted($INI->{delete_all_criteria});
 }
 
-sub delete_missing {
+sub detect_missing {
 	say_timed "checking for missing files";
 	WallpaperList::mark_missing_as_deleted(-1);
 }
 
-sub remove_deleted {
+sub trash_deleted {
 	my $list = WallpaperList::get_deleted();
 	foreach (@$list) {
 		_delete(@$_);
