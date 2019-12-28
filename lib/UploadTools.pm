@@ -129,7 +129,7 @@ sub directupload {
 
 	if ($response->is_success) {
 		my $body = $response->content();
-		$body =~ m#(http://\w+.directupload.net/images/\w+/\w+\.\w{3,4})#i;
+		$body =~ m#(https://\w+.directupload.net/images/\w+/\w+\.\w{3,4})#i;
 		return $1;
 	}
 	else {
