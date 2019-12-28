@@ -20,9 +20,7 @@ my $PATHS;
 
 #$db_path, $wp_path
 #initialises the database creating tables if necessaray
-sub init {
-	$DB_PATH = shift or croak 'db_path not defined';
-	$WP_PATH = shift or croak 'wp_path not defined';
+sub init($DB_PATH, $WP_PATH) {
 	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 0,PrintError => 1});
 
 	if($DBH->selectrow_array("SELECT name FROM sqlite_master WHERE type='table' AND name='wallpaper'")) {
@@ -37,8 +35,7 @@ sub init {
 
 #$position -> ($path,$sha)
 #returns the path and sha value for the given $position
-sub get_data {
-	my $position = shift;
+sub get_data($position) {
 	my ($path,$sha) = $DBH->selectrow_array("SELECT path, sha1 FROM wallpaper WHERE position = ?",undef,$position);
 	if ($path and !$sha) {
 		return gen_sha($path);
@@ -72,22 +69,19 @@ sub gen_sha($path) {
 
 #$sha -> $path
 #returns the $path for $sha
-sub get_path {
-	my $sha = shift;
+sub get_path($sha) {
 	return $DBH->selectrow_array("SELECT path FROM wallpaper WHERE sha1 = ?",undef,$sha)
 }
 
 #$sha -> $pos
 #returns the $pos for $sha
-sub get_pos {
-	my $sha = shift;
+sub get_pos($sha) {
 	return $DBH->selectrow_array("SELECT position FROM wallpaper WHERE sha1 = ?",undef,$sha)
 }
 
 #$sha, $value
 #markes $sha as deleted
-sub mark_deleted {
-	my ($sha, $value) = @_;
+sub mark_deleted($sha, $value) {
 	$DBH->do("UPDATE wallpaper SET deleted = ?, position = - _rowid_ WHERE sha1 = ?", undef, $value, $sha);
 	# $DBH->commit();
 }
