@@ -1,9 +1,10 @@
 package Change;
 
-use 5.010;
+use 5.020;
 use strict;
 use warnings;
-no if $] >= 5.018, warnings => "experimental::smartmatch";
+use feature qw(signatures);
+no warnings qw(experimental::signatures experimental::smartmatch);
 
 use lib "./lib";
 use utf8;
@@ -21,6 +22,11 @@ my $TIME = Time::HiRes::time;
 our $START_TIME = $TIME;
 our $INI;
 
+our $VERBOSE = 0;
+sub set_verbose($value) {
+	$VERBOSE = $value;
+}
+
 sub timing {
 	my $ct = Time::HiRes::time;
 	my $ret = sprintf "(%.3f | %.3f)", $ct - $TIME, $ct - $START_TIME;
@@ -33,14 +39,14 @@ sub say_timed {
 }
 
 sub reload {
-	say_timed "Load";
+	say_timed "Load" if $VERBOSE;
 	$INI = WPConfig::load($FindBin::Bin . "/") or die "could not load config";
 	WallpaperList::init($INI->{db_path},$INI->{wp_path});
 }
 
 sub commit {
 	WallpaperList::commit();
-	say_timed "commited";
+	say_timed "commited" if $VERBOSE;
 }
 
 sub dispatch {
@@ -55,6 +61,7 @@ sub dispatch {
 		when('hash_all') { hash_all() };
 		when('nsfw') { set_nsfw() };
 		when('open') { open_wallpaper() };
+		when('path') { full_path() };
 		when('pregen') { pregenerate_wallpapers() };
 		when('purge') { purge() };
 		when('rand') { rand_wp() };
@@ -85,6 +92,7 @@ sub usage {
 	say "\thash_all - hash all unhashed files";
 	say "\tnsfw - set the nsfw flag";
 	say "\topen - opens the image";
+	say "\tpath - output the full path to stdout";
 	say "\tpregen - pregenerates an amount of wallpapers specified by pregen_amount";
 	say "\tpurge - removes flags and votes from wallpaper";
 	say "\trand - select a random wallpaper based on rand_criteria";
@@ -100,6 +108,10 @@ sub usage {
 	say "\tvotedown - vote wallpaper down";
 	say "\t\"rand <query where clause>\" - executes the query and displays a random result";
 	say "\t'number' - change wallpaper by that amount";
+}
+
+sub full_path {
+	say $INI->{wp_path} . WallpaperList::get_path($INI->{current})
 }
 
 sub index_wp_path {
@@ -320,7 +332,7 @@ sub exec_command {
 }
 
 sub cleanup_generated_wallpapers {
-	say_timed "Cleanup" ;
+	say_timed "Cleanup" if $VERBOSE;
 	opendir(my $dh, $INI->{gen_path}) or return;
 	my @dir = grep {-f $INI->{gen_path}.$_ and $_ =~ /^\w+$/ and $_ ne $INI->{current}} readdir($dh);
 	closedir $dh;
@@ -330,7 +342,7 @@ sub cleanup_generated_wallpapers {
 		my $upper = $INI->{position} + $INI->{pregen_amount};
 		unlink $INI->{gen_path}.$file if !$pos or $pos < $lower or $pos > $upper;
 	}
-	say_timed "Cleanup Done";
+	say_timed "Cleanup Done" if $VERBOSE;
 }
 
 sub pregenerate_wallpapers {

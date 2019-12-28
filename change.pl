@@ -19,6 +19,11 @@ use Change;
 # open my $self_lock, '<', $0 or die "Couldn't open self: $!";
 # flock $self_lock, LOCK_EX | LOCK_NB or die "This script is already running";
 
+if ($ARGV[0] eq "-v") {
+	shift @ARGV;
+	Change::set_verbose(1);
+}
+
 Change::reload();
 
 @ARGV or Change::usage();
