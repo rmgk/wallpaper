@@ -20,7 +20,9 @@ my $PATHS;
 
 #$db_path, $wp_path
 #initialises the database creating tables if necessaray
-sub init($DB_PATH, $WP_PATH) {
+sub init($db_path, $wp_path) {
+	$DB_PATH = $db_path or croak 'db_path not defined';
+	$WP_PATH = $wp_path or croak 'wp_path not defined';
 	$DBH = DBI->connect("dbi:SQLite:dbname=". $DB_PATH,"","",{AutoCommit => 0,PrintError => 1});
 
 	if($DBH->selectrow_array("SELECT name FROM sqlite_master WHERE type='table' AND name='wallpaper'")) {
