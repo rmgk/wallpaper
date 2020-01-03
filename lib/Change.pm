@@ -236,7 +236,7 @@ sub change_wp {
 	my ($rel_path,$sha);
 	while (1) {
 		warn "invalid position $pos" and return if ($pos < 1 or $pos > $max_pos);
-		($rel_path,$sha) = get_data($pos);
+		($rel_path,$sha) = WallpaperList::get_data($pos);
 		last if $sha and $rel_path;
 		return unless $mv;
 		$pos += $mv <=> 0;
@@ -352,24 +352,11 @@ sub pregenerate_wallpapers {
  	my $count = $INI->{pregen_amount};
 	my $pos = $INI->{position};
 	while($count--) {
-		my ($path,$sha) = get_data(++$pos);
+		my ($path,$sha) = WallpaperList::get_data(++$pos);
 		next unless $path and $sha;
 		gen_wp($path,$sha);
 	}
 	lock_release('pregen');
-}
-
-sub get_data {
-	my ($pos, $qpath) = @_;
-	my ($path, $sha, $double) = $pos ?
-		WallpaperList::get_data($pos) :
-		WallpaperList::gen_sha($qpath);
-	if ($double) {
-		say "$path has same sha as $double";
-		_delete($path,$sha);
-		return (undef,undef)
-	}
-	return ($path,$sha);
 }
 
 sub export {
@@ -430,14 +417,12 @@ sub lock_release {
 	return unlink $lock;
 }
 
-sub display_query {
-	my ($query) = @_;
+sub display_query($query) {
 	say_timed "Select randomly from query";
-	my $fav = WallpaperList::get_list('path IS NOT NULL AND (' . $query. ')', "ORDER BY RANDOM() LIMIT 1");
+	my $fav = WallpaperList::get_list('path is not null and sha is not null and (' . $query. ')', "ORDER BY RANDOM() LIMIT 1");
 	warn "nothing matching criteria" and return unless @$fav;
 	my $sel = $fav->[0];
 	my ($path, $sha) = @$sel;
-	($path, $sha) = get_data(0, $path) if $path and not $sha;
 	say_timed "Selected " . $path;
 	gen_wp($path,$sha, 'set') or return;
 	say_timed "SAVE CONFIG";
