@@ -84,7 +84,7 @@ sub get_pos($sha) {
 #$sha, $value
 #markes $sha as deleted
 sub mark_deleted($sha, $value) {
-	$DBH->do("UPDATE wallpaper SET deleted = ?, position = - _rowid_ WHERE sha1 = ?", undef, $value, $sha);
+	$DBH->do("UPDATE wallpaper SET deleted = ? WHERE sha1 = ?", undef, $value, $sha);
 	# $DBH->commit();
 }
 
