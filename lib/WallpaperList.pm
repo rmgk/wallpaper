@@ -59,7 +59,7 @@ sub gen_sha($path) {
 		my ($double, $deleted) = $DBH->selectrow_array("SELECT path, deleted FROM wallpaper WHERE sha1 = ?",undef,$sha);
 		if ((! -e $WP_PATH . $double) and ((! defined $deleted) or !($deleted > 0))) {
 			say "{$path} has same hash as missing {$double}, assuming rename";
-			$DBH->do("UPDATE wallpaper SET path = ?, deleted = NULL WHERE sha1 = ?",undef, $path, $sha);
+			$DBH->do("UPDATE wallpaper SET path = ? WHERE sha1 = ?",undef, $path, $sha);
 			$double = undef;
 		}
 		# $DBH->commit();
