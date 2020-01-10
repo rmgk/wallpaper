@@ -164,7 +164,7 @@ sub max_pos {
 #takes a sql string of criteria and returns a list of paths and shas
 sub get_list {
 	my ($criteria, $additional_clauses) = @_;
-	return $DBH->selectall_arrayref("SELECT path,sha1 FROM wallpaper WHERE ($criteria) AND deleted IS NULL " . ($additional_clauses // ""));
+	return $DBH->selectall_arrayref("SELECT path, sha1 FROM wallpaper WHERE ($criteria) AND deleted IS NULL " . ($additional_clauses // ""));
 }
 
 #-> \@[$path,$sha]

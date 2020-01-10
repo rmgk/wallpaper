@@ -419,7 +419,7 @@ sub lock_release {
 
 sub display_query($query) {
 	say_timed "Select randomly from query";
-	my $fav = WallpaperList::get_list('path is not null and sha is not null and (' . $query. ')', "ORDER BY RANDOM() LIMIT 1");
+	my $fav = WallpaperList::get_list('path is not null and sha1 is not null and (' . $query. ')', "ORDER BY RANDOM() LIMIT 1");
 	warn "nothing matching criteria" and return unless @$fav;
 	my $sel = $fav->[0];
 	my ($path, $sha) = @$sel;
