@@ -91,7 +91,7 @@ sub usage {
 	say "\texport - export selection to export_path";
 	say "\tfav - set favourite flag";
 	say "\thash_all - hash all unhashed files";
-	say "\tlist_order - list all wallpapers in order"
+	say "\tlist_order - list all wallpapers in order";
 	say "\tnsfw - set the nsfw flag";
 	say "\topen - opens the image";
 	say "\tpath - output the full path to stdout";
