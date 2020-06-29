@@ -59,6 +59,7 @@ sub dispatch {
 		when('export') { export() };
 		when('fav') { set_fav() };
 		when('hash_all') { hash_all() };
+		when('list_order') {list_order() };
 		when('nsfw') { set_nsfw() };
 		when('open') { open_wallpaper() };
 		when('path') { full_path() };
@@ -90,12 +91,14 @@ sub usage {
 	say "\texport - export selection to export_path";
 	say "\tfav - set favourite flag";
 	say "\thash_all - hash all unhashed files";
+	say "\tlist_order - list all wallpapers in order"
 	say "\tnsfw - set the nsfw flag";
 	say "\topen - opens the image";
 	say "\tpath - output the full path to stdout";
 	say "\tpregen - pregenerates an amount of wallpapers specified by pregen_amount";
 	say "\tpurge - removes flags and votes from wallpaper";
 	say "\trand - select a random wallpaper based on rand_criteria";
+	say "\t\"rand <query where clause>\" - executes the query and displays a random result";
 	say "\treorder - recreates the order of the wallpapers according to the order_criteria";
 	say "\trescan - rescans the wp_path for wallpapers";
 	say "\tsfw - sets the nsfw level to sfw";
@@ -106,7 +109,6 @@ sub usage {
 	say "\tvacuum - rebuild the database to reclaim free space";
 	say "\tvoteup - vote wallpaper up";
 	say "\tvotedown - vote wallpaper down";
-	say "\t\"rand <query where clause>\" - executes the query and displays a random result";
 	say "\t'number' - change wallpaper by that amount";
 }
 
@@ -415,6 +417,13 @@ sub lock_set {
 sub lock_release {
 	my $lock = shift;
 	return unlink $lock;
+}
+
+sub list_order() {
+	say_timed "getting order";
+	my $list = WallpaperList::get_list("path is not null and position is not null", "order by position");
+	my $path = $INI->{wp_path};
+	say ($path . $_->[0]) for @$list;
 }
 
 sub display_query($query) {
