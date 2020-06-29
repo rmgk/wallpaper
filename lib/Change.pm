@@ -420,7 +420,6 @@ sub lock_release {
 }
 
 sub list_order() {
-	say_timed "getting order";
 	my $list = WallpaperList::get_list("path is not null and position is not null", "order by position");
 	my $path = $INI->{wp_path};
 	say ($path . $_->[0]) for @$list;
