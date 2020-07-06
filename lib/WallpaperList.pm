@@ -201,7 +201,7 @@ sub determine_order {
 	use List::Util 'shuffle';
 	my $old_autocommit = $DBH->{AutoCommit};
 	$DBH->{AutoCommit} = 0;
-	my @ids =  shuffle @{$DBH->selectcol_arrayref("SELECT _rowid_ FROM wallpaper WHERE ($criteria) AND deleted IS NULL")};
+	my @ids =  shuffle @{$DBH->selectcol_arrayref("SELECT _rowid_ FROM wallpaper WHERE ($criteria) AND deleted IS NULL and position is null")};
 	my $sth = $DBH->prepare("UPDATE wallpaper SET position = ? WHERE _rowid_ = ?");
 	my $from = (max_pos() // 0) + 1;
 	my $to = $from - 1 + @ids;
