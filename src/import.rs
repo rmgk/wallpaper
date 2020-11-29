@@ -16,7 +16,7 @@ pub fn get_wpi(row: &Row, names: &HashMap<String, usize>) -> Result<WallpaperInf
     let purity = match nsfw {
         Some(0) => Purity::Sketchy,
         Some(1) => Purity::NSFW,
-        _ => Purity::Normal
+        _ => Purity::Pure
     };
     let vote: Option<i32> = row.get(names["vote"])?;
     let fav: Option<i32> = row.get(names["fav"])?;

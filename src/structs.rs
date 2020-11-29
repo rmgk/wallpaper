@@ -8,7 +8,7 @@ use strum_macros::EnumString;
 
 #[derive(Debug, PartialEq, EnumString, Display, FromPrimitive, Copy, Clone)]
 pub enum Purity {
-    Normal = 0,
+    Pure = 0,
     Sketchy = 1,
     NSFW = 2,
 }

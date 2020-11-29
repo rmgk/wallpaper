@@ -49,7 +49,7 @@ fn main() -> Result<()> {
             "+normal" => set_collection(Collection::Favorite, &config, &tx)?,
             "+sketchy" => set_purity(Purity::Sketchy, &config, &tx)?,
             "+nsfw" => set_purity(Purity::NSFW, &config, &tx)?,
-            "+pure" => set_purity(Purity::Normal, &config, &tx)?,
+            "+pure" => set_purity(Purity::Pure, &config, &tx)?,
             "info" => {
                 config.current.as_ref().map(|c| select_sha(&c, &tx).map(|w| {
                     println!("{:?}", w.1)
