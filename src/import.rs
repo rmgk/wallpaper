@@ -1,12 +1,7 @@
 use std::collections::HashMap;
-use std::process::Command;
 
-use rusqlite::{Connection, Error, NO_PARAMS, Result, Row, Statement, ToSql, Transaction};
-use rusqlite::types::{FromSqlResult, ToSqlOutput, ValueRef};
-use strum_macros::Display;
-use strum_macros::EnumString;
+use rusqlite::{NO_PARAMS, Result, Row, Statement, ToSql, Transaction};
 
-use crate::{main, query_helper};
 use crate::structs::*;
 
 pub fn get_wpp(row: &Row, names: &HashMap<String, usize>) -> Result<WallpaperPath> {
@@ -36,6 +31,15 @@ pub fn get_wpi(row: &Row, names: &HashMap<String, usize>) -> Result<WallpaperInf
         purity: purity,
         collection: collect,
     })
+}
+
+fn query_helper(stmt: &Statement) -> Result<HashMap<String, usize>> {
+    let names = stmt.column_names();
+    let mut map = HashMap::new();
+    for name in names {
+        map.insert(String::from(name), stmt.column_index(name)?);
+    }
+    Ok(map)
 }
 
 pub fn import(tx: &Transaction) -> Result<()> {

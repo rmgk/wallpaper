@@ -2,80 +2,108 @@ extern crate num;
 #[macro_use]
 extern crate num_derive;
 
-use std::collections::HashMap;
 use std::env;
-use std::env::VarError::NotPresent;
+use std::fs;
 use std::process::Command;
 
-use rusqlite::{Connection, Error, NO_PARAMS, Result, Row, Statement, ToSql, Transaction};
-use rusqlite::types::{FromSqlResult, ToSqlOutput, ValueRef};
-use strum_macros::Display;
-use strum_macros::EnumString;
+use rusqlite::{Connection, NO_PARAMS, Result, Transaction};
+use serde_derive::{Deserialize, Serialize};
 
-use crate::structs::Collection;
+use crate::structs::{Collection, WallpaperPath};
 
 mod import;
 mod structs;
 
-fn query_helper(stmt: &Statement) -> Result<HashMap<String, usize>> {
-    let names = stmt.column_names();
-    let mut map = HashMap::new();
-    for name in names {
-        map.insert(String::from(name), stmt.column_index(name)?);
-    }
-    Ok(map)
+#[derive(Deserialize, Serialize)]
+pub struct Config {
+    db_path: String,
+    position: Option<i32>,
+    current: Option<String>,
+    wp_path: String,
+    simulate: Option<bool>,
 }
 
 
 fn main() -> Result<()> {
-    let mut conn = Connection::open("wp.db")?;
+    let mut config: Config = toml::from_str(fs::read_to_string("config.ini").expect("read config").as_str()).expect("parse config");
+
+
+    let mut conn = Connection::open(&config.db_path)?;
     let tx = conn.transaction()?;
     let args = env::args().skip(1);
     for arg in args {
         match arg.as_str() {
             "import" => import::import(&tx)?,
-            "rand" => random(&tx)?,
-            other => println!("unknown argument: {}", other),
+            "rand" => set_wallpaper(select_random(&tx)?, &mut config),
+            "reorder" => reorder(&tx)?,
+            other => {
+                match other.parse::<i32>() {
+                    Ok(mov) => {
+                        config.position = Some(config.position.unwrap_or(1) + mov);
+                        set_wallpaper(select_position(config.position.unwrap_or(1), &tx)?, &mut config);
+                    }
+                    Err(_) => println!("unknown argument: {}", other),
+                }
+            }
         }
     }
     tx.commit()?;
-    Ok(())
-}
-
-fn random(tx: &Transaction) -> Result<()> {
-    let path: String = tx.query_row("select path from info natural join files where collection = ? order by RANDOM() LIMIT 1", &[Collection::Display], |row| row.get(0))?;
-    let full = ["/home/ragnar/Sync/Wallpaper/", path.as_str()].concat();
-    
-    Command::new("set-wallpaper")
-        .args(&[full])
-        .status()
-        .expect("failed to execute process");
+    fs::write("config.ini", toml::to_string(&config).expect("serialize config")).expect("write config");
     Ok(())
 }
 
 
-fn set_image(path: &String) {
-    let size = imagesize::size(path).expect("parse image size");
+fn select_random(tx: &Transaction) -> Result<WallpaperPath> {
+    tx.query_row("select path, sha1 from info natural join files where collection = ? order by RANDOM() LIMIT 1", &[Collection::Display], |row| { Ok(WallpaperPath { path: row.get(0)?, sha1: row.get(1)? }) })
+}
 
-    let x = size.width;
-    let y = size.height;
+fn select_position(pos: i32, tx: &Transaction) -> Result<WallpaperPath> {
+    tx.query_row("select path, sha1 from ordering natural join files where position = ?", &[pos], |row| Ok(WallpaperPath { path: row.get(0)?, sha1: row.get(1)? }))
+}
 
-    let ratio = (x as f32) / (y as f32);
+fn reorder(tx: &Transaction) -> Result<()> {
+    tx.execute("drop table if exists ordering;", NO_PARAMS)?;
+    tx.execute("create table ordering (position INTEGER PRIMARY KEY AUTOINCREMENT, sha1 UNIQUE NOT NULL);", NO_PARAMS)?;
+    tx.execute("insert into ordering (sha1) select sha1 from info where collection = 'Display' order by random(); ", NO_PARAMS)?;
+    Ok(())
+}
 
-    let mut escaped_path = path.clone();
+fn set_wallpaper(wpi: WallpaperPath, config: &mut Config) {
+    let full = format!("{}{}", config.wp_path, wpi.path);
+    config.current = Some(wpi.sha1);
 
-    for symbol in "()&;'".chars() {
-        escaped_path = escaped_path.replace(symbol, format!("\\{}", symbol).as_str());
+    if !config.simulate.unwrap_or(false) {
+        Command::new("set-wallpaper")
+            .args(&[full])
+            .status()
+            .expect("failed to execute process");
+    } else {
+        println!("set »{}«", full);
     }
-
-
-    let method = if ratio < 1.35 || ratio > 2.25 { "fit" } else { "fill" };
-
-    println!("{}, {} {}", ratio, method, escaped_path);
-
-
-    Command::new("swaymsg")
-        .args(&["output", "*", "bg", escaped_path.as_str(), method])
-        .status()
-        .expect("failed to execute process");
 }
+
+// fn set_image(path: &String) {
+//     let size = imagesize::size(path).expect("parse image size");
+//
+//     let x = size.width;
+//     let y = size.height;
+//
+//     let ratio = (x as f32) / (y as f32);
+//
+//     let mut escaped_path = path.clone();
+//
+//     for symbol in "()&;'".chars() {
+//         escaped_path = escaped_path.replace(symbol, format!("\\{}", symbol).as_str());
+//     }
+//
+//
+//     let method = if ratio < 1.35 || ratio > 2.25 { "fit" } else { "fill" };
+//
+//     println!("{}, {} {}", ratio, method, escaped_path);
+//
+//
+//     Command::new("swaymsg")
+//         .args(&["output", "*", "bg", escaped_path.as_str(), method])
+//         .status()
+//         .expect("failed to execute process");
+// }

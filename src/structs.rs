@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-use std::process::Command;
 
-use rusqlite::{Connection, Error, NO_PARAMS, Result, Row, Statement, ToSql, Transaction};
-use rusqlite::types::{FromSqlResult, ToSqlOutput, ValueRef};
+use rusqlite::{Result, ToSql};
+use rusqlite::types::{ToSqlOutput};
 use strum_macros::Display;
 use strum_macros::EnumString;
 
@@ -42,3 +40,4 @@ pub struct WallpaperPath {
     pub sha1: String,
     pub path: String,
 }
+
