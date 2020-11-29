@@ -31,7 +31,8 @@ fn query_helper(stmt: &Statement) -> Result<HashMap<String, usize>> {
 fn main() -> Result<()> {
     let mut conn = Connection::open("wp.db")?;
     let tx = conn.transaction()?;
-    for arg in env::args() {
+    let args = env::args().skip(1);
+    for arg in args {
         match arg.as_str() {
             "import" => import::import(&tx)?,
             "rand" => random(&tx)?,
@@ -43,13 +44,12 @@ fn main() -> Result<()> {
 }
 
 fn random(tx: &Transaction) -> Result<()> {
-    let path = tx.query_row("select path from files where sha1 = (select sha1 from info where collection = ? order by RANDOM() LIMIT 1)", &[Collection::Display], |row| row.get::<usize, String>(0))?;
-
+    let sha1 = tx.query_row("select sha1 from info where collection = ? order by RANDOM() LIMIT 1", &[Collection::Display], |row| row.get::<usize, String>(0))?;
+    let path: String = tx.query_row("select path from files where sha1 = ?", &[sha1], |row| row.get(0))?;
     let full = ["/home/ragnar/Sync/Wallpaper/", path.as_str()].concat();
-    println!("{}", full);
-    // Command::new("set-wallpaper")
-    //     .args(&[full])
-    //     .status()
-    //     .expect("failed to execute process");
+    Command::new("set-wallpaper")
+        .args(&[full])
+        .status()
+        .expect("failed to execute process");
     Ok(())
 }
