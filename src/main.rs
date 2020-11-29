@@ -6,10 +6,10 @@ use std::env;
 use std::fs;
 use std::process::Command;
 
-use rusqlite::{Connection, NO_PARAMS, Result, Transaction};
+use rusqlite::{Connection, NO_PARAMS, Result, ToSql, Transaction};
 use serde_derive::{Deserialize, Serialize};
 
-use crate::structs::{Collection, WallpaperPath};
+use crate::structs::{Collection, WallpaperPath, Purity};
 
 mod import;
 mod structs;
@@ -36,6 +36,15 @@ fn main() -> Result<()> {
             "import" => import::import(&tx)?,
             "rand" => set_wallpaper(select_random(&tx)?, &mut config),
             "reorder" => reorder(&tx)?,
+            "#trash" => set_collection(Collection::Trash, &config, &tx)?,
+            "#fav" => set_collection(Collection::Favorite, &config, &tx)?,
+            "#shelve" => set_collection(Collection::Shelf, &config, &tx)?,
+            "#display" => set_collection(Collection::Display, &config, &tx)?,
+            "#normal" => set_collection(Collection::Favorite, &config, &tx)?,
+            "#sketchy" => set_purity(Purity::Sketchy, &config, &tx)?,
+            "#nsfw" => set_purity(Purity::NSFW, &config, &tx)?,
+            "#pure" => set_purity(Purity::Normal, &config, &tx)?,
+
             other => {
                 match other.parse::<i32>() {
                     Ok(mov) => {
@@ -50,6 +59,14 @@ fn main() -> Result<()> {
     tx.commit()?;
     fs::write("config.ini", toml::to_string(&config).expect("serialize config")).expect("write config");
     Ok(())
+}
+
+fn set_collection(collection: Collection, config: &Config, tx: &Transaction) -> Result<()> {
+    tx.execute::<&[&dyn ToSql]>("update info set collection = ? where sha1 = ?", &[&collection, &config.current]).map(|_| ())
+}
+
+fn set_purity(purity: Purity, config: &Config, tx: &Transaction) -> Result<()> {
+    tx.execute::<&[&dyn ToSql]>("update info set purity = ? where sha1 = ?", &[&purity, &config.current]).map(|_| ())
 }
 
 
