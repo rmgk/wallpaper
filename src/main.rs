@@ -14,7 +14,6 @@ use strum_macros::EnumString;
 
 use crate::structs::Collection;
 
-
 mod import;
 mod structs;
 
