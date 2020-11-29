@@ -14,7 +14,7 @@ pub enum Purity {
 }
 
 impl ToSql for Purity {
-    fn to_sql(&self) -> Result<ToSqlOutput> { Ok(ToSqlOutput::from(*self as i8)) }
+    fn to_sql(&self) -> Result<ToSqlOutput> { Ok(ToSqlOutput::from(self.to_string())) }
 }
 
 #[derive(Debug, PartialEq, EnumString, Display, FromPrimitive, Copy, Clone)]
@@ -27,7 +27,7 @@ pub enum Collection {
 }
 
 impl ToSql for Collection {
-    fn to_sql(&self) -> Result<ToSqlOutput> { Ok(ToSqlOutput::from(*self as i8)) }
+    fn to_sql(&self) -> Result<ToSqlOutput> { Ok(ToSqlOutput::from(self.to_string())) }
 }
 
 #[derive(Debug)]
