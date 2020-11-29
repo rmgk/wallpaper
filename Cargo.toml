@@ -12,6 +12,7 @@ strum_macros = "0.20"
 num = "0.2"
 num-derive = "0.3"
 num-traits = "0.2"
+imagesize = "0.8.8"
 
 [dependencies.rusqlite]
 version = "0.24.1"

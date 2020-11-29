@@ -43,12 +43,39 @@ fn main() -> Result<()> {
 }
 
 fn random(tx: &Transaction) -> Result<()> {
-    let sha1 = tx.query_row("select sha1 from info where collection = ? order by RANDOM() LIMIT 1", &[Collection::Display], |row| row.get::<usize, String>(0))?;
-    let path: String = tx.query_row("select path from files where sha1 = ?", &[sha1], |row| row.get(0))?;
+    let path: String = tx.query_row("select path from info natural join files where collection = ? order by RANDOM() LIMIT 1", &[Collection::Display], |row| row.get(0))?;
     let full = ["/home/ragnar/Sync/Wallpaper/", path.as_str()].concat();
+    
     Command::new("set-wallpaper")
         .args(&[full])
         .status()
         .expect("failed to execute process");
     Ok(())
+}
+
+
+fn set_image(path: &String) {
+    let size = imagesize::size(path).expect("parse image size");
+
+    let x = size.width;
+    let y = size.height;
+
+    let ratio = (x as f32) / (y as f32);
+
+    let mut escaped_path = path.clone();
+
+    for symbol in "()&;'".chars() {
+        escaped_path = escaped_path.replace(symbol, format!("\\{}", symbol).as_str());
+    }
+
+
+    let method = if ratio < 1.35 || ratio > 2.25 { "fit" } else { "fill" };
+
+    println!("{}, {} {}", ratio, method, escaped_path);
+
+
+    Command::new("swaymsg")
+        .args(&["output", "*", "bg", escaped_path.as_str(), method])
+        .status()
+        .expect("failed to execute process");
 }
