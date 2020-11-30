@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use rusqlite::{NO_PARAMS, Result, Row, Statement, ToSql, Transaction};
+use rusqlite::{Result, Row, Statement, ToSql, Transaction, NO_PARAMS};
 
 use crate::structs::*;
 
@@ -10,21 +10,29 @@ pub fn get_wpp(row: &Row, names: &HashMap<String, usize>) -> Result<WallpaperPat
     Ok(WallpaperPath { sha1, path })
 }
 
-
 pub fn get_wpi(row: &Row, names: &HashMap<String, usize>) -> Result<WallpaperInfo> {
     let nsfw: Option<i32> = row.get(names["nsfw"])?;
     let purity = match nsfw {
         Some(0) => Purity::Sketchy,
         Some(1) => Purity::NSFW,
-        _ => Purity::Pure
+        _ => Purity::Pure,
     };
     let vote: Option<i32> = row.get(names["vote"])?;
     let fav: Option<i32> = row.get(names["fav"])?;
     let deleted_option: Option<i32> = row.get(names["deleted"])?;
     let deleted = deleted_option.map(|_| true).unwrap_or(false);
 
-    let collection =
-        if deleted { Collection::Trash } else if vote.unwrap_or(0) > 0 { Collection::Display } else if vote.unwrap_or(0) < 0 { Collection::Shelf } else if fav.map(|_| true).unwrap_or(false) { Collection::Favorite } else { Collection::Normal };
+    let collection = if deleted {
+        Collection::Trash
+    } else if vote.unwrap_or(0) > 0 {
+        Collection::Display
+    } else if vote.unwrap_or(0) < 0 {
+        Collection::Shelf
+    } else if fav.map(|_| true).unwrap_or(false) {
+        Collection::Favorite
+    } else {
+        Collection::Normal
+    };
 
     Ok(WallpaperInfo {
         sha1: row.get(names["sha1"])?,
@@ -43,16 +51,24 @@ fn query_helper(stmt: &Statement) -> Result<HashMap<String, usize>> {
 }
 
 pub fn import(tx: &Transaction) -> Result<()> {
-    tx.execute("create table if not exists info (sha1 TEXT UNIQUE, collection TEXT, purity TEXT);", NO_PARAMS)?;
-    tx.execute("create table if not exists files (sha1 TEXT NOT NULL, path TEXT UNIQUE NOT NULL);", NO_PARAMS)?;
+    tx.execute(
+        "create table if not exists info (sha1 TEXT UNIQUE, collection TEXT, purity TEXT);",
+        NO_PARAMS,
+    )?;
+    tx.execute(
+        "create table if not exists files (sha1 TEXT NOT NULL, path TEXT UNIQUE NOT NULL);",
+        NO_PARAMS,
+    )?;
 
     tx.execute("create index idx_files_sha1 on files (sha1);", NO_PARAMS)?;
-    tx.execute("create index idx_info_collection on info (collection);", NO_PARAMS)?;
-
+    tx.execute(
+        "create index idx_info_collection on info (collection);",
+        NO_PARAMS,
+    )?;
 
     {
         let mut query_stmt = tx.prepare(
-            "select path, sha1, vote, fav, deleted, cast (nsfw as INTEGER) AS nsfw from wallpaper"
+            "select path, sha1, vote, fav, deleted, cast (nsfw as INTEGER) AS nsfw from wallpaper",
         )?;
 
         let names = query_helper(&query_stmt)?;
@@ -67,13 +83,10 @@ pub fn import(tx: &Transaction) -> Result<()> {
             Ok((wpp, wpi))
         })?;
 
-        let mut file_stmt = tx.prepare(
-            "insert into files (sha1, path) values (?, ?)"
-        )?;
+        let mut file_stmt = tx.prepare("insert into files (sha1, path) values (?, ?)")?;
 
-        let mut info_stmt = tx.prepare(
-            "insert or fail into info (sha1, collection, purity) values (?, ?, ?)"
-        )?;
+        let mut info_stmt =
+            tx.prepare("insert or fail into info (sha1, collection, purity) values (?, ?, ?)")?;
 
         for row in rows {
             let (wpp, wpir) = row?;
@@ -85,12 +98,15 @@ pub fn import(tx: &Transaction) -> Result<()> {
 
                     info_stmt.execute::<&[&dyn ToSql]>(&[&sha, &col, &pur])?;
                 }
-                Err(e) => { println!("err wpp {}", e) }
+                Err(e) => {
+                    println!("err wpp {}", e)
+                }
             }
 
-
             match wpp {
-                Err(e) => { println!("err wpp {}", e) }
+                Err(e) => {
+                    println!("err wpp {}", e)
+                }
                 Ok(wppo) => {
                     file_stmt.execute::<&[&dyn ToSql]>(&[&wppo.sha1, &wppo.path])?;
                 }
