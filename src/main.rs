@@ -148,6 +148,9 @@ fn select_sha(sha1: &str, tx: &Transaction) -> Result<(WallpaperPath, WallpaperI
 }
 
 fn reorder(tx: &Transaction, config: &Config) -> Result<()> {
+    config.position.map(|p| {
+         tx.execute::<&[&dyn ToSql]>("update or ignore info set collection = ? from (select sha1 from ordering where position < ?) as seen where collection = ? and info.sha1 = seen.sha1", &[&Collection::Normal, &p, &Collection::New]).unwrap();
+    });
     tx.execute("drop table if exists ordering;", NO_PARAMS)?;
     tx.execute(
         "create table ordering (position INTEGER PRIMARY KEY AUTOINCREMENT, sha1 UNIQUE NOT NULL);",
