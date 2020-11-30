@@ -23,13 +23,13 @@ pub fn get_wpi(row: &Row, names: &HashMap<String, usize>) -> Result<WallpaperInf
     let deleted_option: Option<i32> = row.get(names["deleted"])?;
     let deleted = deleted_option.map(|_| true).unwrap_or(false);
 
-    let collect =
+    let collection =
         if deleted { Collection::Trash } else if vote.unwrap_or(0) > 0 { Collection::Display } else if vote.unwrap_or(0) < 0 { Collection::Shelf } else if fav.map(|_| true).unwrap_or(false) { Collection::Favorite } else { Collection::Normal };
 
     Ok(WallpaperInfo {
         sha1: row.get(names["sha1"])?,
-        purity: purity,
-        collection: collect,
+        purity,
+        collection,
     })
 }
 

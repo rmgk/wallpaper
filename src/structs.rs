@@ -6,11 +6,11 @@ use serde_derive::{Deserialize, Serialize};
 use strum_macros::Display;
 use strum_macros::EnumString;
 
-#[derive(Debug, PartialEq, EnumString, Display, FromPrimitive, Copy, Clone)]
+#[derive(Debug, PartialEq, EnumString, Display, Copy, Clone)]
 pub enum Purity {
-    Pure = 0,
-    Sketchy = 1,
-    NSFW = 2,
+    Pure,
+    Sketchy,
+    NSFW,
 }
 
 impl ToSql for Purity {
@@ -23,13 +23,14 @@ impl FromSql for Purity {
     }
 }
 
-#[derive(Debug, PartialEq, EnumString, Display, FromPrimitive, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, EnumString, Display, Copy, Clone, Deserialize, Serialize)]
 pub enum Collection {
-    Display = 2,
-    Favorite = 1,
-    Normal = 0,
-    Shelf = -1,
-    Trash = -2,
+    Display,
+    Favorite,
+    Normal,
+    Shelf,
+    Trash,
+    New
 }
 
 impl FromSql for Collection {
