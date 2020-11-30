@@ -6,7 +6,7 @@ use serde_derive::{Deserialize, Serialize};
 use strum_macros::Display;
 use strum_macros::EnumString;
 
-#[derive(Debug, PartialEq, EnumString, Display, Copy, Clone)]
+#[derive(Debug, PartialEq, EnumString, Display, Copy, Clone, Deserialize, Serialize)]
 pub enum Purity {
     Pure,
     Sketchy,

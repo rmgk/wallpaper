@@ -1,9 +1,12 @@
+use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::process::Command;
 
 use rusqlite::{Connection, Result, ToSql, Transaction, NO_PARAMS};
 use serde_derive::{Deserialize, Serialize};
+use sha1::{Digest, Sha1};
+use walkdir::{DirEntry, WalkDir};
 
 use crate::structs::{Collection, Purity, WallpaperInfo, WallpaperPath};
 
@@ -17,8 +20,10 @@ pub struct Config {
     current: Option<String>,
     wp_path: String,
     simulate: Option<bool>,
-    collections: Vec<Collection>,
+    ordered: Vec<Collection>,
     random: Vec<Collection>,
+    order_filter: Vec<Purity>,
+    random_filter: Vec<Purity>,
 }
 
 fn main() -> Result<()> {
@@ -31,11 +36,20 @@ fn main() -> Result<()> {
     .expect("parse config");
 
     let mut conn = Connection::open(&config.db_path)?;
+
+    let max_pos = conn
+        .query_row("select max(position) from ordering", NO_PARAMS, |row| {
+            row.get(0)
+        })
+        .unwrap_or(0);
+
     let tx = conn.transaction()?;
+
     let args = env::args().skip(1);
     for arg in args {
         match arg.as_str() {
-            "import" => import::import(&tx)?,
+            "import-database" => import::import(&tx)?,
+            "scan" => scan_new_files(&config, &tx)?,
             "rand" => set_wallpaper(select_random(&tx, &config)?, &mut config),
             "reorder" => {
                 reorder(&tx, &config)?;
@@ -62,11 +76,14 @@ fn main() -> Result<()> {
             }
             other => match other.parse::<i32>() {
                 Ok(mov) => {
-                    config.position = Some(config.position.unwrap_or(1) + mov);
-                    set_wallpaper(
-                        select_position(config.position.unwrap_or(1), &tx)?,
-                        &mut config,
-                    );
+                    let next_pos = config.position.unwrap_or(1) + mov;
+                    if next_pos <= max_pos && next_pos >= 1 {
+                        config.position = Some(next_pos);
+                        set_wallpaper(
+                            select_position(config.position.unwrap_or(1), &tx)?,
+                            &mut config,
+                        );
+                    }
                 }
                 Err(_) => println!("unknown argument: {}", other),
             },
@@ -79,6 +96,74 @@ fn main() -> Result<()> {
     )
     .expect("write config");
     Ok(())
+}
+
+struct WpPathRelative {
+    path: DirEntry,
+    relative: String,
+}
+
+fn scan_new_files(config: &Config, tx: &Transaction) -> Result<()> {
+    let endings = [".jpg", ".jpeg", ".png", ".gif", ".bmp"];
+    let mut select_paths_stmt = tx.prepare("select path from files;")?;
+    let know_paths: HashSet<String> = select_paths_stmt
+        .query_map(NO_PARAMS, |row| row.get::<usize, String>(0))?
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .collect();
+
+    let mut hasher = Sha1::new();
+
+    let mut insert_file_stmt = tx.prepare("insert into files (sha1, path) values (?, ?)")?;
+    let mut insert_info_stmt =
+        tx.prepare("insert into info (sha1, collection, purity) values (?, ?, ?)")?;
+
+    WalkDir::new(&config.wp_path)
+        .follow_links(true)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file())
+        .filter(|e| {
+            endings
+                .iter()
+                .any(|ft| e.path().to_str().map_or(false, |p| p.ends_with(ft)))
+        })
+        .map(|e| WpPathRelative {
+            path: e.clone(),
+            relative: String::from(
+                e.path()
+                    .strip_prefix(&config.wp_path)
+                    .expect("strip prefix")
+                    .to_str()
+                    .expect("to str"),
+            ),
+        })
+        .filter(|wp| !know_paths.contains(&wp.relative))
+        .map(|wp| {
+            println!("found new »{}«", wp.path.path().to_str().unwrap_or(""));
+            let bytes = fs::read(wp.path.path()).expect(&format!(
+                "reading failed »{}«",
+                wp.path.path().to_str().unwrap_or("")
+            ));
+            hasher.update(bytes);
+            let result = hasher.finalize_reset();
+            let sha1 = hex::encode(result);
+            WallpaperPath {
+                sha1,
+                path: wp.relative,
+            }
+        })
+        .map(|wp| {
+            insert_file_stmt.insert(&[&wp.sha1, &wp.path])?;
+            insert_info_stmt.insert::<&[&dyn ToSql]>(&[
+                &wp.sha1,
+                &Collection::New,
+                &Purity::Pure,
+            ])?;
+            Ok(())
+        })
+        .find(|r| r.is_err())
+        .unwrap_or(Ok(()))
 }
 
 fn set_collection(collection: Collection, config: &Config, tx: &Transaction) -> Result<()> {
@@ -97,11 +182,20 @@ fn set_purity(purity: Purity, config: &Config, tx: &Transaction) -> Result<()> {
     .map(|_| ())
 }
 
+
 fn select_random(tx: &Transaction, config: &Config) -> Result<WallpaperPath> {
     let rand = &config.random;
-    let holes: Vec<&str> = rand.iter().map(|_| "?").collect();
-    let sql = format!("select path, sha1 from info natural join files where collection in ({}) order by RANDOM() LIMIT 1", holes.join(", "));
-    tx.query_row(&sql, rand, |row| {
+    let filter = &config.random_filter;
+    let rand_holes: Vec<&str> = rand.iter().map(|_| "?").collect();
+    let filter_holes: Vec<&str> = filter.iter().map(|_| "?").collect();
+    let sql = format!("select path, sha1 from info natural join files where collection in ({}) and purity in ({}) order by RANDOM() LIMIT 1", rand_holes.join(", "), filter_holes.join(", "));
+    let mut params: Vec<&dyn ToSql> = Vec::new();
+
+    let rclone = rand.clone();
+    let fclone = filter.clone();
+    params.append(&mut rclone.iter().map(|e| (e as &dyn ToSql)).collect());
+    params.append(&mut fclone.iter().map(|e| (e as &dyn ToSql)).collect());
+    tx.query_row(&sql, params, |row| {
         Ok(WallpaperPath {
             path: row.get(0)?,
             sha1: row.get(1)?,
@@ -156,7 +250,7 @@ fn reorder(tx: &Transaction, config: &Config) -> Result<()> {
         "create table ordering (position INTEGER PRIMARY KEY AUTOINCREMENT, sha1 UNIQUE NOT NULL);",
         NO_PARAMS,
     )?;
-    let collections = &config.collections;
+    let collections = &config.ordered;
     let holes: Vec<&str> = collections.iter().map(|_| "?").collect();
     let sql = format!("insert into ordering (sha1) select sha1 from info where collection in ({}) order by random(); ", holes.join(", "));
     tx.execute(&sql, collections)?;
