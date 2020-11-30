@@ -56,7 +56,7 @@ pub fn import(tx: &Transaction) -> Result<()> {
         NO_PARAMS,
     )?;
     tx.execute(
-        "create table if not exists files (sha1 TEXT NOT NULL, path TEXT UNIQUE NOT NULL);",
+        "create table if not exists files (sha1 TEXT NOT NULL, path TEXT NOT NULL);",
         NO_PARAMS,
     )?;
 
