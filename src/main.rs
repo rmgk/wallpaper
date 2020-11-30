@@ -182,7 +182,6 @@ fn set_purity(purity: Purity, config: &Config, tx: &Transaction) -> Result<()> {
     .map(|_| ())
 }
 
-
 fn select_random(tx: &Transaction, config: &Config) -> Result<WallpaperPath> {
     let rand = &config.random;
     let filter = &config.random_filter;
@@ -190,7 +189,6 @@ fn select_random(tx: &Transaction, config: &Config) -> Result<WallpaperPath> {
     let filter_holes: Vec<&str> = filter.iter().map(|_| "?").collect();
     let sql = format!("select path, sha1 from info natural join files where collection in ({}) and purity in ({}) order by RANDOM() LIMIT 1", rand_holes.join(", "), filter_holes.join(", "));
     let mut params: Vec<&dyn ToSql> = Vec::new();
-
     let rclone = rand.clone();
     let fclone = filter.clone();
     params.append(&mut rclone.iter().map(|e| (e as &dyn ToSql)).collect());
@@ -250,10 +248,20 @@ fn reorder(tx: &Transaction, config: &Config) -> Result<()> {
         "create table ordering (position INTEGER PRIMARY KEY AUTOINCREMENT, sha1 UNIQUE NOT NULL);",
         NO_PARAMS,
     )?;
+
     let collections = &config.ordered;
-    let holes: Vec<&str> = collections.iter().map(|_| "?").collect();
-    let sql = format!("insert into ordering (sha1) select sha1 from info where collection in ({}) order by random(); ", holes.join(", "));
-    tx.execute(&sql, collections)?;
+    let filter = &config.order_filter;
+    let collection_holes: Vec<&str> = collections.iter().map(|_| "?").collect();
+    let filter_holes: Vec<&str> = filter.iter().map(|_| "?").collect();
+    let sql = format!("insert into ordering (sha1) select sha1 from info where collection in ({}) and purity in ({}) order by random(); ",
+                      collection_holes.join(", "),
+                      filter_holes.join(", "));
+    let mut params: Vec<&dyn ToSql> = Vec::new();
+    let cclone = collections.clone();
+    let fclone = filter.clone();
+    params.append(&mut cclone.iter().map(|e| (e as &dyn ToSql)).collect());
+    params.append(&mut fclone.iter().map(|e| (e as &dyn ToSql)).collect());
+    tx.execute(&sql, params)?;
     Ok(())
 }
 
