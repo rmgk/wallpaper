@@ -1,8 +1,10 @@
 use std::collections::HashSet;
 use std::env;
 use std::fs;
+use std::iter::repeat;
 use std::process::Command;
 
+use itertools::Itertools;
 use rusqlite::{Connection, Result, ToSql, Transaction, NO_PARAMS};
 use serde_derive::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
@@ -185,15 +187,11 @@ fn set_purity(purity: Purity, config: &Config, tx: &Transaction) -> Result<()> {
 fn select_random(tx: &Transaction, config: &Config) -> Result<WallpaperPath> {
     let rand = &config.random;
     let filter = &config.random_filter;
-    let rand_holes: Vec<&str> = rand.iter().map(|_| "?").collect();
-    let filter_holes: Vec<&str> = filter.iter().map(|_| "?").collect();
-    let sql = format!("select path, sha1 from info natural join files where collection in ({}) and purity in ({}) order by RANDOM() LIMIT 1", rand_holes.join(", "), filter_holes.join(", "));
-    let mut params: Vec<&dyn ToSql> = Vec::new();
-    let rclone = rand.clone();
-    let fclone = filter.clone();
-    params.append(&mut rclone.iter().map(|e| (e as &dyn ToSql)).collect());
-    params.append(&mut fclone.iter().map(|e| (e as &dyn ToSql)).collect());
-    tx.query_row(&sql, params, |row| {
+    let sql =
+        format!("select path, sha1 from info natural join files where collection in ({}) and purity in ({}) order by RANDOM() LIMIT 1",
+                qstr(rand.len()),
+                qstr(filter.len()));
+    tx.query_row(&sql, sconcat(rand, filter), |row| {
         Ok(WallpaperPath {
             path: row.get(0)?,
             sha1: row.get(1)?,
@@ -239,6 +237,17 @@ fn select_sha(sha1: &str, tx: &Transaction) -> Result<(WallpaperPath, WallpaperI
     Ok((wpp, wpi))
 }
 
+fn qstr(len: usize) -> String {
+    repeat("?").take(len).join(", ")
+}
+
+fn sconcat<'a>(col: &'a Vec<Collection>, pur: &'a Vec<Purity>) -> Vec<&'a dyn ToSql> {
+    let mut params: Vec<&dyn ToSql> = Vec::new();
+    col.iter().for_each(|c| params.push(c));
+    pur.iter().for_each(|c| params.push(c));
+    params
+}
+
 fn reorder(tx: &Transaction, config: &Config) -> Result<()> {
     config.position.map(|p| {
          tx.execute::<&[&dyn ToSql]>("update or ignore info set collection = ? from (select sha1 from ordering where position < ?) as seen where collection = ? and info.sha1 = seen.sha1", &[&Collection::Normal, &p, &Collection::New]).unwrap();
@@ -251,17 +260,12 @@ fn reorder(tx: &Transaction, config: &Config) -> Result<()> {
 
     let collections = &config.ordered;
     let filter = &config.order_filter;
-    let collection_holes: Vec<&str> = collections.iter().map(|_| "?").collect();
-    let filter_holes: Vec<&str> = filter.iter().map(|_| "?").collect();
+
     let sql = format!("insert into ordering (sha1) select sha1 from info where collection in ({}) and purity in ({}) order by random(); ",
-                      collection_holes.join(", "),
-                      filter_holes.join(", "));
-    let mut params: Vec<&dyn ToSql> = Vec::new();
-    let cclone = collections.clone();
-    let fclone = filter.clone();
-    params.append(&mut cclone.iter().map(|e| (e as &dyn ToSql)).collect());
-    params.append(&mut fclone.iter().map(|e| (e as &dyn ToSql)).collect());
-    tx.execute(&sql, params)?;
+                      qstr(collections.len()),
+                      qstr(filter.len()));
+
+    tx.execute(&sql, sconcat(collections, filter))?;
     Ok(())
 }
 
