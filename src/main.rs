@@ -4,6 +4,7 @@ use std::fs;
 use std::iter::repeat;
 use std::process::Command;
 
+use indoc::indoc;
 use itertools::Itertools;
 use rusqlite::{Connection, Result, ToSql, Transaction, NO_PARAMS};
 use serde_derive::{Deserialize, Serialize};
@@ -48,47 +49,55 @@ fn main() -> Result<()> {
     let tx = conn.transaction()?;
 
     let args = env::args().skip(1);
-    for arg in args {
-        match arg.as_str() {
-            "import-database" => import::import(&tx)?,
-            "scan" => scan_new_files(&config, &tx)?,
-            "rand" => set_wallpaper(select_random(&tx, &config)?, &mut config),
-            "reorder" => {
-                reorder(&tx, &config)?;
-                config.position = Some(1);
-            }
-            "+trash" => set_collection(Collection::Trash, &config, &tx)?,
-            "+fav" => set_collection(Collection::Favorite, &config, &tx)?,
-            "+shelve" => set_collection(Collection::Shelf, &config, &tx)?,
-            "+display" => set_collection(Collection::Display, &config, &tx)?,
-            "+normal" => set_collection(Collection::Favorite, &config, &tx)?,
-            "+sketchy" => set_purity(Purity::Sketchy, &config, &tx)?,
-            "+nsfw" => set_purity(Purity::NSFW, &config, &tx)?,
-            "+pure" => set_purity(Purity::Pure, &config, &tx)?,
-            "info" => {
-                config
-                    .current
-                    .as_ref()
-                    .map(|c| select_sha(&c, &tx).map(|w| println!("{:?}", w.1)));
-            }
-            "path" => {
-                config.current.as_ref().map(|c| {
-                    select_sha(&c, &tx).map(|w| println!("{}{}", config.wp_path, w.0.path))
-                });
-            }
-            other => match other.parse::<i32>() {
-                Ok(mov) => {
-                    let next_pos = config.position.unwrap_or(1) + mov;
-                    if next_pos <= max_pos && next_pos >= 1 {
-                        config.position = Some(next_pos);
-                        set_wallpaper(
-                            select_position(config.position.unwrap_or(1), &tx)?,
-                            &mut config,
-                        );
-                    }
+    if args.len() == 0 {
+        help()
+    } else {
+        for arg in args {
+            match arg.as_str() {
+                "initialize-database" => create_tables(&tx)?,
+                "import-database" => import::import(&tx)?,
+                "scan" => scan_new_files(&config, &tx)?,
+                "rand" => set_wallpaper(select_random(&tx, &config)?, &mut config),
+                "reorder" => {
+                    reorder(&tx, &config)?;
+                    config.position = Some(1);
                 }
-                Err(_) => println!("unknown argument: {}", other),
-            },
+                "+trash" => set_collection(Collection::Trash, &config, &tx)?,
+                "+fav" => set_collection(Collection::Favorite, &config, &tx)?,
+                "+shelve" => set_collection(Collection::Shelf, &config, &tx)?,
+                "+display" => set_collection(Collection::Display, &config, &tx)?,
+                "+normal" => set_collection(Collection::Favorite, &config, &tx)?,
+                "+sketchy" => set_purity(Purity::Sketchy, &config, &tx)?,
+                "+nsfw" => set_purity(Purity::NSFW, &config, &tx)?,
+                "+pure" => set_purity(Purity::Pure, &config, &tx)?,
+                "info" => {
+                    config
+                        .current
+                        .as_ref()
+                        .map(|c| select_sha(&c, &tx).map(|w| println!("{:?}", w.1)));
+                }
+                "path" => {
+                    config.current.as_ref().map(|c| {
+                        select_sha(&c, &tx).map(|w| println!("{}{}", config.wp_path, w.0.path))
+                    });
+                }
+                other => match other.parse::<i32>() {
+                    Ok(mov) => {
+                        let next_pos = config.position.unwrap_or(1) + mov;
+                        if next_pos <= max_pos && next_pos >= 1 {
+                            config.position = Some(next_pos);
+                            set_wallpaper(
+                                select_position(config.position.unwrap_or(1), &tx)?,
+                                &mut config,
+                            );
+                        }
+                    }
+                    Err(_) => {
+                        help();
+                        println!("unknown argument: {}", other)
+                    }
+                },
+            }
         }
     }
     tx.commit()?;
@@ -97,6 +106,47 @@ fn main() -> Result<()> {
         toml::to_string(&config).expect("serialize config"),
     )
     .expect("write config");
+    Ok(())
+}
+
+fn help() {
+    println!(indoc! {"
+        # Initializing
+
+        initialize-database – create the correct tables (only call once with a new db)
+        import-database     – import from old wallpaper database format (call initialize first)
+        scan                – scan wallpaper directory for new elements
+
+        # Selecting
+
+        rand     – select random wallpaper
+        reorder  – create a new order of wallpaper
+        [number] – move wallpaper in order
+
+        # Meta
+
+        info      – print info about the wallpaper
+        path      – print the path of the wallpaper
+        +<purity> – set purity to one of <pure, sketchy, nsfw>
+        +<collct> – change collection <display, fav, normal, shelve, trash>
+        "})
+}
+
+fn create_tables(tx: &Transaction) -> Result<()> {
+    tx.execute(
+        "create table if not exists info (sha1 TEXT UNIQUE, collection TEXT, purity TEXT);",
+        NO_PARAMS,
+    )?;
+    tx.execute(
+        "create table if not exists files (sha1 TEXT NOT NULL, path TEXT NOT NULL);",
+        NO_PARAMS,
+    )?;
+
+    tx.execute("create index idx_files_sha1 on files (sha1);", NO_PARAMS)?;
+    tx.execute(
+        "create index idx_info_collection on info (collection);",
+        NO_PARAMS,
+    )?;
     Ok(())
 }
 

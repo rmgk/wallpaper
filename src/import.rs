@@ -51,20 +51,7 @@ fn query_helper(stmt: &Statement) -> Result<HashMap<String, usize>> {
 }
 
 pub fn import(tx: &Transaction) -> Result<()> {
-    tx.execute(
-        "create table if not exists info (sha1 TEXT UNIQUE, collection TEXT, purity TEXT);",
-        NO_PARAMS,
-    )?;
-    tx.execute(
-        "create table if not exists files (sha1 TEXT NOT NULL, path TEXT NOT NULL);",
-        NO_PARAMS,
-    )?;
 
-    tx.execute("create index idx_files_sha1 on files (sha1);", NO_PARAMS)?;
-    tx.execute(
-        "create index idx_info_collection on info (collection);",
-        NO_PARAMS,
-    )?;
 
     {
         let mut query_stmt = tx.prepare(
