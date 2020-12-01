@@ -1,0 +1,33 @@
+[package]
+name = "wpc-rust"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+strum = "0.20"
+strum_macros = "0.20"
+#num = "0.2"
+#num-derive = "0.3"
+#num-traits = "0.2"
+#imagesize = "0.8.8"
+toml = "0.5.7"
+serde_derive = "1.0.117"
+serde = "1.0.117"
+walkdir = "2"
+sha-1 = "0.9.2"
+hex = "0.4.2"
+itertools = "0.9.0"
+indoc = "1.0"
+
+[dependencies.rusqlite]
+version = "0.24.1"
+features = ["bundled"]
+
+[profile.release]
+opt-level = 'z'  # Optimize for size.
+lto = true # link time optimizations (e.g., global dead code elimination)
+# next two do not seem to make a noticable difference
+# codegen-units = 1 # reduce parallel codegen units … stops optimizations to be missed because of different units
+# panic = 'abort'
