@@ -335,11 +335,12 @@ fn reorder(tx: &Transaction, config: &Config) -> Result<()> {
 
 fn set_wallpaper(wpi: WallpaperPath, config: &mut Config) {
     let full = format!("{}{}", config.wp_path, wpi.path);
+    let size = imagesize::size(&full).expect("parse image size");
     config.current = Some(wpi.sha1);
 
     if !config.simulate.unwrap_or(false) {
         Command::new("set-wallpaper")
-            .args(&[full])
+            .args(&[full, size.width.to_string(), size.height.to_string()])
             .status()
             .expect("failed to execute process");
     } else {
@@ -347,28 +348,3 @@ fn set_wallpaper(wpi: WallpaperPath, config: &mut Config) {
     }
 }
 
-// fn set_image(path: &String) {
-//     let size = imagesize::size(path).expect("parse image size");
-//
-//     let x = size.width;
-//     let y = size.height;
-//
-//     let ratio = (x as f32) / (y as f32);
-//
-//     let mut escaped_path = path.clone();
-//
-//     for symbol in "()&;'".chars() {
-//         escaped_path = escaped_path.replace(symbol, format!("\\{}", symbol).as_str());
-//     }
-//
-//
-//     let method = if ratio < 1.35 || ratio > 2.25 { "fit" } else { "fill" };
-//
-//     println!("{}, {} {}", ratio, method, escaped_path);
-//
-//
-//     Command::new("swaymsg")
-//         .args(&["output", "*", "bg", escaped_path.as_str(), method])
-//         .status()
-//         .expect("failed to execute process");
-// }
