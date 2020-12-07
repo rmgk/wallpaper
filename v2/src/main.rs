@@ -134,15 +134,13 @@ fn help() {
 
 fn create_tables(tx: &Transaction) -> Result<()> {
     tx.execute(
-        "create table if not exists info (sha1 TEXT UNIQUE, collection TEXT, purity TEXT);",
+        "create table info (sha1 TEXT PRIMARY KEY, collection TEXT NOT NULL, purity TEXT NOT NULL);",
         NO_PARAMS,
     )?;
     tx.execute(
-        "create table if not exists files (sha1 TEXT NOT NULL, path TEXT NOT NULL);",
+        "create table files (sha1 TEXT PRIMARY KEY, path TEXT NOT NULL);",
         NO_PARAMS,
     )?;
-
-    tx.execute("create index idx_files_sha1 on files (sha1);", NO_PARAMS)?;
     tx.execute(
         "create index idx_info_collection on info (collection);",
         NO_PARAMS,
@@ -157,7 +155,7 @@ struct WpPathRelative {
 
 fn scan_new_files(config: &Config, tx: &Transaction) -> Result<()> {
     let endings = [".jpg", ".jpeg", ".png", ".gif", ".bmp"];
-    let mut select_paths_stmt = tx.prepare("select path, sha1 from files natural join info where collection != 'Missing';")?;
+    let mut select_paths_stmt = tx.prepare("select path, sha1 from files;")?;
     let mut known_seen_paths: HashMap<String, Option<String>> = select_paths_stmt
         .query_map(NO_PARAMS, |row| Ok((row.get::<usize, String>(0)?, row.get(1)?)))?
         .into_iter()
@@ -166,9 +164,9 @@ fn scan_new_files(config: &Config, tx: &Transaction) -> Result<()> {
 
     let mut hasher = Sha1::new();
 
-    let mut insert_file_stmt = tx.prepare("insert into files (sha1, path) values (?, ?)")?;
+    let mut insert_file_stmt = tx.prepare("replace into files (sha1, path) values (?, ?)")?;
     let mut insert_info_stmt =
-        tx.prepare("insert into info (sha1, collection, purity) values (?, ?, ?)")?;
+        tx.prepare("insert or ignore into info (sha1, collection, purity) values (?, ?, ?)")?;
 
     WalkDir::new(&config.wp_path)
         .follow_links(true)
@@ -223,11 +221,11 @@ fn scan_new_files(config: &Config, tx: &Transaction) -> Result<()> {
         .unwrap_or(Ok(()))?;
 
 
-    let mut set_missing = tx.prepare(
-        "update or ignore info set collection = ? where sha1 = ?")?;
+    let mut delete_missing = tx.prepare(
+        "delete from files where sha1 = ?")?;
     for (_path, seen) in known_seen_paths {
         if let Some(sha) = seen {
-            set_missing.execute::<&[&dyn ToSql]>(&[&Collection::Missing, &sha])?;
+            delete_missing.execute::<&[&dyn ToSql]>(&[&sha])?;
         }
     }
 

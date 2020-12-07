@@ -35,7 +35,6 @@ pub enum Collection {
     Shelf,
     Trash,
     New,
-    Missing,
 }
 
 impl FromSql for Collection {
