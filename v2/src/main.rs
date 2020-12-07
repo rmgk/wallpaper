@@ -339,10 +339,11 @@ fn set_wallpaper(wpi: WallpaperPath, config: &mut Config) {
     config.current = Some(wpi.sha1);
 
     if !config.simulate.unwrap_or(false) {
-        Command::new("set-wallpaper")
+        let status = Command::new("set-wallpaper")
             .args(&[full, size.width.to_string(), size.height.to_string()])
             .status()
             .expect("failed to execute process");
+        assert!(status.success(), "setting wallpaper command failed")
     } else {
         println!("set »{}«", full);
     }
