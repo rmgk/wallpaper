@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::iter::repeat;
@@ -6,7 +6,7 @@ use std::process::Command;
 
 use indoc::indoc;
 use itertools::Itertools;
-use rusqlite::{Connection, Result, ToSql, Transaction, NO_PARAMS};
+use rusqlite::{Connection, NO_PARAMS, Result, ToSql, Transaction};
 use serde_derive::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 use walkdir::{DirEntry, WalkDir};
@@ -36,7 +36,7 @@ fn main() -> Result<()> {
             .expect("read config")
             .as_str(),
     )
-    .expect("parse config");
+        .expect("parse config");
 
     let mut conn = Connection::open(&config.db_path)?;
 
@@ -105,7 +105,7 @@ fn main() -> Result<()> {
         config_path,
         toml::to_string(&config).expect("serialize config"),
     )
-    .expect("write config");
+        .expect("write config");
     Ok(())
 }
 
@@ -157,9 +157,9 @@ struct WpPathRelative {
 
 fn scan_new_files(config: &Config, tx: &Transaction) -> Result<()> {
     let endings = [".jpg", ".jpeg", ".png", ".gif", ".bmp"];
-    let mut select_paths_stmt = tx.prepare("select path from files;")?;
-    let know_paths: HashSet<String> = select_paths_stmt
-        .query_map(NO_PARAMS, |row| row.get::<usize, String>(0))?
+    let mut select_paths_stmt = tx.prepare("select path, sha1 from files natural join info where collection != 'Missing';")?;
+    let mut known_seen_paths: HashMap<String, Option<String>> = select_paths_stmt
+        .query_map(NO_PARAMS, |row| Ok((row.get::<usize, String>(0)?, row.get(1)?)))?
         .into_iter()
         .filter_map(|e| e.ok())
         .collect();
@@ -190,7 +190,12 @@ fn scan_new_files(config: &Config, tx: &Transaction) -> Result<()> {
                     .expect("to str"),
             ),
         })
-        .filter(|wp| !know_paths.contains(&wp.relative))
+        .filter(|wp| {
+            if known_seen_paths.contains_key(&wp.relative) {
+                known_seen_paths.insert(wp.relative.clone(), None);
+                false
+            } else { true }
+        })
         .map(|wp| {
             println!("found new »{}«", wp.path.path().to_str().unwrap_or(""));
             let bytes = fs::read(wp.path.path()).expect(&format!(
@@ -214,8 +219,19 @@ fn scan_new_files(config: &Config, tx: &Transaction) -> Result<()> {
             ])?;
             Ok(())
         })
-        .find(|r| r.is_err())
-        .unwrap_or(Ok(()))
+        .find(|r: &Result<()>| r.is_err())
+        .unwrap_or(Ok(()))?;
+
+
+    let mut set_missing = tx.prepare(
+        "update or ignore info set collection = ? where sha1 = ?")?;
+    for (_path, seen) in known_seen_paths {
+        if let Some(sha) = seen {
+            set_missing.execute::<&[&dyn ToSql]>(&[&Collection::Missing, &sha])?;
+        }
+    }
+
+    Ok(())
 }
 
 fn set_collection(collection: Collection, config: &Config, tx: &Transaction) -> Result<()> {
@@ -223,7 +239,7 @@ fn set_collection(collection: Collection, config: &Config, tx: &Transaction) -> 
         "update info set collection = ? where sha1 = ?",
         &[&collection, &config.current],
     )
-    .map(|_| ())
+        .map(|_| ())
 }
 
 fn set_purity(purity: Purity, config: &Config, tx: &Transaction) -> Result<()> {
@@ -231,7 +247,7 @@ fn set_purity(purity: Purity, config: &Config, tx: &Transaction) -> Result<()> {
         "update info set purity = ? where sha1 = ?",
         &[&purity, &config.current],
     )
-    .map(|_| ())
+        .map(|_| ())
 }
 
 fn select_random(tx: &Transaction, config: &Config) -> Result<WallpaperPath> {
@@ -300,7 +316,7 @@ fn sconcat<'a>(col: &'a Vec<Collection>, pur: &'a Vec<Purity>) -> Vec<&'a dyn To
 
 fn reorder(tx: &Transaction, config: &Config) -> Result<()> {
     config.position.map(|p| {
-         tx.execute::<&[&dyn ToSql]>("update or ignore info set collection = ? from (select sha1 from ordering where position < ?) as seen where collection = ? and info.sha1 = seen.sha1", &[&Collection::Normal, &p, &Collection::New]).unwrap();
+        tx.execute::<&[&dyn ToSql]>("update or ignore info set collection = ? from (select sha1 from ordering where position < ?) as seen where collection = ? and info.sha1 = seen.sha1", &[&Collection::Normal, &p, &Collection::New]).unwrap();
     });
     tx.execute("drop table if exists ordering;", NO_PARAMS)?;
     tx.execute(
