@@ -58,9 +58,12 @@ fn main() -> Result<()> {
                 "import-database" => import::import(&tx)?,
                 "scan" => scan_new_files(&config, &tx)?,
                 "rand" => set_wallpaper(select_random(&tx, &config)?, &config, &tx)?,
+                "mark-seen" => {
+                    let count = mark_seen(&tx)?;
+                    println!("marked {} wallpapers as seen", count);
+                }
                 "reorder" => {
                     reorder(&tx, &config)?;
-
                     set_position(1, &tx)?;
                 }
                 "+trash" => set_collection(Collection::Trash, &tx)?,
@@ -83,7 +86,7 @@ fn main() -> Result<()> {
                 }
                 other => match other.parse::<i32>() {
                     Ok(mov) => {
-                        let next_pos = get_position(&tx).unwrap_or(1) + mov;
+                        let next_pos = get_position(&tx)? + mov;
                         if next_pos <= max_pos && next_pos >= 1 {
                             set_position(next_pos, &tx)?;
                             set_wallpaper(
@@ -119,11 +122,11 @@ fn set_current(sha1: &str, tx: &Transaction) -> Result<usize> {
 }
 
 fn get_position(tx: &Transaction) -> Result<i32> {
-    tx.query_row("select value from settings where key = 'position'", NO_PARAMS, |row| row.get(0))
+    tx.query_row("select CAST(value as INTEGER) from settings where key = 'position'", NO_PARAMS, |row| row.get(0))
 }
 
 fn get_current(tx: &Transaction) -> Result<String> {
-    tx.query_row("select value from settings where key ='current'", NO_PARAMS, |row| row.get(0))
+    tx.query_row("select CAST(value as TEXT) from settings where key ='current'", NO_PARAMS, |row| row.get(0))
 }
 
 fn help() {
@@ -336,9 +339,11 @@ fn sconcat<'a>(col: &'a Vec<Collection>, pur: &'a Vec<Purity>) -> Vec<&'a dyn To
     params
 }
 
-fn reorder(tx: &Transaction, config: &Config) -> Result<()> {
-    tx.execute::<&[&dyn ToSql]>("update or ignore info set collection = ? from (select sha1 from ordering, settings where position < settings.value and settings.key = 'position') as seen where collection = ? and info.sha1 = seen.sha1", &[&Collection::Normal, &Collection::New]).unwrap();
+fn mark_seen(tx: &Transaction) -> Result<usize> {
+    tx.execute::<&[&dyn ToSql]>("update or ignore info set collection = ? from (select sha1 from ordering, settings where position < settings.value and settings.key = 'position') as seen where collection = ? and info.sha1 = seen.sha1", &[&Collection::Normal, &Collection::New])
+}
 
+fn reorder(tx: &Transaction, config: &Config) -> Result<()> {
     tx.execute("drop table if exists ordering;", NO_PARAMS)?;
     tx.execute(
         "create table ordering (position INTEGER PRIMARY KEY AUTOINCREMENT, sha1 TEXT UNIQUE NOT NULL);",
