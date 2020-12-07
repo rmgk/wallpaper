@@ -76,8 +76,19 @@ fn main() -> Result<()> {
                 "+pure" => set_purity(Purity::Pure, &tx)?,
                 "info" => {
                     let current = get_current(&tx)?;
+                    let position = get_position(&tx).unwrap_or(0);
+                    let ordered = is_ordered(&tx)?;
                     select_sha(&current, &tx).map(|(wpp, wpi)| {
-                        println!("{:?}\n{}", wpi, wpp.path)
+                        println!("sha1 {}", wpi.sha1);
+                        println!("coll {}", wpi.collection);
+                        println!("puri {}", wpi.purity);
+                        if ordered {
+                            println!("posi {}/{}", position, max_pos);
+                        }
+                        else {
+                            println!("pos* {}/{}", position, max_pos);
+                        }
+                        println!("path {}{}", config.wallpaper_path, wpp.path);
                     })?;
                 }
                 "path" => {
@@ -105,6 +116,10 @@ fn main() -> Result<()> {
         }
     }
     tx.commit()
+}
+
+fn is_ordered(tx: &Transaction) -> Result<bool> {
+    tx.query_row("select res.sha1 = value from settings, (select sha1 from ordering, settings where ordering.position = settings.value and settings.key = 'position') as res where settings.key = 'current'", NO_PARAMS, |row| row.get(0))
 }
 
 fn set_position(pos: i32, tx: &Transaction) -> Result<usize> {
