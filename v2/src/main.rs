@@ -86,7 +86,7 @@ fn main() -> Result<()> {
                 }
                 other => match other.parse::<i32>() {
                     Ok(mov) => {
-                        let next_pos = get_position(&tx)? + mov;
+                        let next_pos = get_position(&tx).unwrap_or(1) + mov;
                         if next_pos <= max_pos && next_pos >= 1 {
                             set_position(next_pos, &tx)?;
                             set_wallpaper(
@@ -136,6 +136,7 @@ fn help() {
         initialize-database – create the correct tables (only call once with a new db)
         import-database     – import from old wallpaper database format (call initialize first)
         scan                – scan wallpaper directory for new elements
+        mark-seen           – change collection of WP from before current position from New to Normal
 
         # Selecting
 
@@ -340,7 +341,7 @@ fn sconcat<'a>(col: &'a Vec<Collection>, pur: &'a Vec<Purity>) -> Vec<&'a dyn To
 }
 
 fn mark_seen(tx: &Transaction) -> Result<usize> {
-    tx.execute::<&[&dyn ToSql]>("update or ignore info set collection = ? from (select sha1 from ordering, settings where position < settings.value and settings.key = 'position') as seen where collection = ? and info.sha1 = seen.sha1", &[&Collection::Normal, &Collection::New])
+    tx.execute::<&[&dyn ToSql]>("update or ignore info set collection = ? from (select sha1 from ordering, settings where position <= settings.value and settings.key = 'position') as seen where collection = ? and info.sha1 = seen.sha1", &[&Collection::Normal, &Collection::New])
 }
 
 fn reorder(tx: &Transaction, config: &Config) -> Result<()> {
