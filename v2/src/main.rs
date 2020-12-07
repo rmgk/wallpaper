@@ -244,8 +244,8 @@ fn scan_new_files(config: &Config, tx: &Transaction) -> Result<()> {
             }
         })
         .map(|wp| {
-            insert_file_stmt.insert(&[&wp.sha1, &wp.path])?;
-            insert_info_stmt.insert::<&[&dyn ToSql]>(&[
+            insert_file_stmt.execute(&[&wp.sha1, &wp.path])?;
+            insert_info_stmt.execute::<&[&dyn ToSql]>(&[
                 &wp.sha1,
                 &Collection::New,
                 &Purity::Pure,
@@ -257,10 +257,15 @@ fn scan_new_files(config: &Config, tx: &Transaction) -> Result<()> {
 
 
     let mut delete_missing = tx.prepare(
-        "delete from files where sha1 = ?")?;
-    for (_path, seen) in known_seen_paths {
+        "delete from files where sha1 = ? and path = ?")?;
+    println!("delete missing files …");
+    for (path, seen) in known_seen_paths {
         if let Some(sha) = seen {
-            delete_missing.execute::<&[&dyn ToSql]>(&[&sha])?;
+            let res = delete_missing.execute::<&[&dyn ToSql]>(&[&sha, &path])?;
+            if res > 0 {
+                println!("{},\"{}\"", sha, path);
+            }
+
         }
     }
 
