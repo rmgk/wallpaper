@@ -104,13 +104,7 @@ fn main() -> Result<()> {
             }
         }
     }
-    tx.commit()?;
-    fs::write(
-        config_path,
-        toml::to_string(&config).expect("serialize config"),
-    )
-        .expect("write config");
-    Ok(())
+    tx.commit()
 }
 
 fn set_position(pos: i32, tx: &Transaction) -> Result<usize> {
