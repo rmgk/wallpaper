@@ -70,7 +70,7 @@ fn main() -> Result<()> {
                 "+fav" => set_collection(Collection::Favorite, &tx)?,
                 "+shelve" => set_collection(Collection::Shelf, &tx)?,
                 "+display" => set_collection(Collection::Display, &tx)?,
-                "+normal" => set_collection(Collection::Favorite, &tx)?,
+                "+normal" => set_collection(Collection::Normal, &tx)?,
                 "+sketchy" => set_purity(Purity::Sketchy, &tx)?,
                 "+nsfw" => set_purity(Purity::NSFW, &tx)?,
                 "+pure" => set_purity(Purity::Pure, &tx)?,
