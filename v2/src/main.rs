@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::iter::repeat;
+use std::path::Path;
 use std::process::Command;
 
 use indoc::indoc;
@@ -57,6 +58,7 @@ fn main() -> Result<()> {
                 "initialize-database" => create_tables(&tx)?,
                 "import-database" => import::import(&tx)?,
                 "scan" => scan_new_files(&config, &tx)?,
+                "recompute-hashes" => rescan_for_changed_files(&config, &tx)?,
                 "rand" => set_wallpaper(select_random(&tx, &config)?, &config, &tx)?,
                 "mark-seen" => {
                     let count = mark_seen(&tx)?;
@@ -84,8 +86,7 @@ fn main() -> Result<()> {
                         println!("puri {}", wpi.purity);
                         if ordered {
                             println!("posi {}/{}", position, max_pos);
-                        }
-                        else {
+                        } else {
                             println!("pos* {}/{}", position, max_pos);
                         }
                         println!("path {}{}", config.wallpaper_path, wpp.path);
@@ -140,12 +141,13 @@ fn get_current(tx: &Transaction) -> Result<String> {
 
 fn help() {
     println!(indoc! {"
-        # Initializing
+        # Management
 
         initialize-database – create the correct tables (only call once with a new db)
         import-database     – import from old wallpaper database format (call initialize first)
         scan                – scan wallpaper directory for new elements
         mark-seen           – change collection of WP from before current position from New to Normal
+        recompute-hashes    – recompute hashes of all files in the database
 
         # Selecting
 
@@ -186,6 +188,41 @@ fn create_tables(tx: &Transaction) -> Result<()> {
 struct WpPathRelative {
     path: DirEntry,
     relative: String,
+}
+
+fn rescan_for_changed_files(config: &Config, tx: &Transaction) -> Result<()> {
+    let mut select_paths_stmt = tx.prepare("select path, sha1 from files;")?;
+    let existing_paths: Vec<(String, String)> = select_paths_stmt
+        .query_map(NO_PARAMS, |row| Ok((row.get::<usize, String>(0)?, row.get(1)?)))?
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .collect();
+
+    let mut hasher = Sha1::new();
+
+    let mut update_files = tx.prepare("update files set sha1 = ? where sha1 = ?")?;
+    let mut update_info =
+        tx.prepare("update info set sha1 = ? where sha1 = ?")?;
+
+    let wp_path = Path::new(&config.wallpaper_path);
+
+    for (path, old_sha1) in existing_paths {
+        let fullpath = wp_path.join(Path::new(&path));
+
+        let new_sha1 = {
+            let bytes = fs::read(&fullpath).expect(&format!("could not read »{:?}«", &fullpath));
+            hasher.update(bytes);
+            let result = hasher.finalize_reset();
+            hex::encode(result)
+        };
+        if new_sha1 != old_sha1 {
+            println!("updating sha1 of {:?}", fullpath);
+            update_files.exists(&[&new_sha1, &old_sha1])?;
+            update_info.exists(&[&new_sha1, &old_sha1])?;
+        }
+    }
+
+    Ok(())
 }
 
 fn scan_new_files(config: &Config, tx: &Transaction) -> Result<()> {
@@ -265,7 +302,6 @@ fn scan_new_files(config: &Config, tx: &Transaction) -> Result<()> {
             if res > 0 {
                 println!("{},\"{}\"", sha, path);
             }
-
         }
     }
 
