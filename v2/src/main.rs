@@ -404,7 +404,7 @@ fn reorder(tx: &Transaction, config: &Config) -> Result<()> {
     let collections = &config.order_collections;
     let filter = &config.order_purity;
 
-    let sql = format!("insert into ordering (sha1) select sha1 from info where collection in ({}) and purity in ({}) order by random(); ",
+    let sql = format!("insert into ordering (sha1) select sha1 from info natural join files where collection in ({}) and purity in ({}) order by random(); ",
                       qstr(collections.len()),
                       qstr(filter.len()));
 
